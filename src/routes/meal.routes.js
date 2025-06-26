@@ -1,4 +1,4 @@
-// src/routes/meal.routes.js
+
 import {Router} from "express";
 import { editMealEntry, deleteMealEntry } from "../controllers/meal.controller.js";
 import { verifyJWT } from "../middlewares/auth.middlware.js";
