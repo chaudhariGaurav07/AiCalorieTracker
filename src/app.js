@@ -22,10 +22,12 @@ import userRoutes from './routes/user.routes.js'
 import goalRoutes from "./routes/goal.routes.js";
 import aiRoutes from "./routes/ai.routes.js";
 import logRoutes from "./routes/log.routes.js"
+import mealRoutes from "./routes/meal.routes.js"
 
 app.use("/api/v1/users", userRoutes)
 app.use("/api/v1/goals", goalRoutes)
 app.use("/api/v1/ai", aiRoutes)
 app.use("/api/v1/logs", logRoutes);
+app.use("/api/v1/meal", mealRoutes);
 
 export {app}
