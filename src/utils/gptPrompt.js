@@ -16,15 +16,15 @@ Meal: ${mealText}`;
     const response = await axios.post(
       "https://openrouter.ai/api/v1/chat/completions",
       {
-        model: "openai/gpt-4o-mini", // ✅ you can also try gpt-3.5-turbo
+        model: "openai/gpt-4o-mini", // try any other model also
         messages: [{ role: "user", content: prompt }],
       },
       {
         headers: {
           Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
           "Content-Type": "application/json",
-          "HTTP-Referer": "http://localhost:5000", // 👈 required
-          "X-Title": "calorie-tracker-ai",          // 👈 required
+          "HTTP-Referer": "http://localhost:5000", 
+          "X-Title": "calorie-tracker-ai",          
         },
       }
     );
