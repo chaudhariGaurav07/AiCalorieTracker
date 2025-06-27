@@ -1,7 +1,9 @@
 import { CalorieGoal } from "../models/CalorieGoal.model.js";
 import { DailyLog } from "../models/DailyLog.model.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
-import {ApiResponce} from "../utils/Apiresponce.js"
+import { ApiResponce } from "../utils/Apiresponce.js";
+
+
 export const getDailyProgress = asyncHandler(async (req, res) => {
   const userId = req.user._id;
   const today = new Date().toISOString().split("T")[0];
@@ -39,8 +41,13 @@ export const getDailyProgress = asyncHandler(async (req, res) => {
     fats: Math.min(Math.round((totals.fats / goal.fatGoal) * 100), 100),
   };
 
-  return res.status(200).json(
-    new ApiResponce(200, { progress, totals, goal }, "Progress fetched successfully")
-  );
-
+  return res
+    .status(200)
+    .json(
+      new ApiResponce(
+        200,
+        { progress, totals, goal },
+        "Progress fetched successfully"
+      )
+    );
 });

@@ -6,7 +6,6 @@ import { ApiError } from "../utils/ApiError.js";
 import { User } from "../models/User.model.js";
 import { ApiResponce } from "../utils/Apiresponce.js";
 import jwt from "jsonwebtoken";
-import mongoose from "mongoose";
 
 const generateAccessAndRefreshToken = async (userId) => {
   try {
@@ -208,7 +207,7 @@ const forgotPassword = asyncHandler(async (req, res) => {
   await user.save({ validateBeforeSave: false });
 
   const resetUrl = `http://your-frontend-url/reset-password/${token}`;
-  console.log(" Reset Link:", resetUrl); 
+  console.log(" Reset Link:", resetUrl); // debuging 
 
 
   await sendMail({

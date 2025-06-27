@@ -24,7 +24,7 @@ const userSchema = new Schema(
       required: true,
     },
 
-    // 🔥 Added for Forgot Password
+    // 
     resetPasswordToken: String,
     resetPasswordExpires: Date,
   },
