@@ -24,6 +24,7 @@ import aiRoutes from "./routes/ai.routes.js";
 import logRoutes from "./routes/log.routes.js"
 import mealRoutes from "./routes/meal.routes.js"
 import progressRoutes from "./routes/progress.routes.js" 
+import authRoutes from "./routes/auth.routes.js"
 
 app.use("/api/v1/users", userRoutes)
 app.use("/api/v1/goals", goalRoutes)
@@ -31,5 +32,6 @@ app.use("/api/v1/ai", aiRoutes)
 app.use("/api/v1/logs", logRoutes);
 app.use("/api/v1/meal", mealRoutes);
 app.use("/api/v1/progress", progressRoutes);
+app.use("/api/v1/auth", authRoutes);
 
 export {app}
