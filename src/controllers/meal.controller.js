@@ -3,6 +3,7 @@ import { DailyLog } from "../models/DailyLog.model.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponce } from "../utils/Apiresponce.js";
+import { analyzeMeal } from "../utils/gptPrompt.js";
 
 export const editMealEntry = asyncHandler(async (req, res) => {
   const { date, index } = req.params;
@@ -58,3 +59,47 @@ export const deleteMealEntry = asyncHandler(async (req, res) => {
     res.status(200).json(new ApiResponce(200, dailyLog, "Meal deleted successfully"));
   });
   
+  export const addMealWithPhoto = asyncHandler(async (req, res) => {
+    const { mealText } = req.body;
+    const image = req.file?.path;
+    const userId = req.user._id;
+  
+    if (!req.file?.path) {
+      throw new ApiError(400, "Image upload failed");
+    }
+    
+    if (!mealText) {
+      throw new ApiError(400, "Meal text is required");
+    }
+  
+    const { calories, protein, carbs, fats } = await analyzeMeal(mealText);
+  
+    const entry = {
+      mealText,
+      calories,
+      protein,
+      carbs,
+      fats,
+      image, // cloudinary url
+    };
+  
+    const today = new Date().toISOString().split("T")[0];
+  
+    const log = await DailyLog.findOneAndUpdate(
+      { user: userId, date: today },
+      {
+        $push: { entries: entry },
+        $inc: {
+          "totals.calories": calories,
+          "totals.protein": protein,
+          "totals.carbs": carbs,
+          "totals.fats": fats,
+        },
+      },
+      { new: true, upsert: true }
+    );
+  
+    return res
+      .status(200)
+      .json(new ApiResponce(200, log, "Meal added successfully with photo"));
+  });
