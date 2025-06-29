@@ -25,6 +25,8 @@ import logRoutes from "./routes/log.routes.js"
 import mealRoutes from "./routes/meal.routes.js"
 import progressRoutes from "./routes/progress.routes.js" 
 import barcodeRoutes from "./routes/barcode.routes.js";
+import stepRoutes from "./routes/step.routes.js";
+
 
 app.use("/api/v1/users", userRoutes)
 app.use("/api/v1/goals", goalRoutes)
@@ -33,5 +35,6 @@ app.use("/api/v1/logs", logRoutes);
 app.use("/api/v1/meal", mealRoutes);
 app.use("/api/v1/progress", progressRoutes);
 app.use("/api/v1/barcode", barcodeRoutes);
+app.use("/api/v1/steps", stepRoutes);
 
 export {app}

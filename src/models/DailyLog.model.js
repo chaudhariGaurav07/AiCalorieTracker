@@ -22,9 +22,9 @@ const entrySchema = new Schema(
       type: Number,
       default: 0,
     },
-    image:{
-      type: String
-    }
+    image: {
+      type: String,
+    },
   },
   { _id: false }
 );
@@ -58,7 +58,15 @@ const dailyLogSchema = new Schema(
         type: Number,
         default: 0,
       },
+    },
 
+    stepCount: {
+      type: Number,
+      default: 0,
+    },
+    burnedCalories: {
+      type: Number,
+      default: 0,
     },
   },
   { timestamps: true }
