@@ -1,10 +1,10 @@
 const BASE_URL = 'https://aicalorietracker.onrender.com/api/v1'
 
 export const loginUser = async ({
-  email,
+  identifier,
   password
 }: {
-  email: string
+  identifier: string
   password: string
 }) => {
   const res = await fetch(`${BASE_URL}/users/login`, {
@@ -12,11 +12,16 @@ export const loginUser = async ({
     headers: {
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify({ email, password })
+    body: JSON.stringify({
+      email: identifier, // backend accepts either email or username
+      username: identifier,
+      password
+    })
   })
 
   return await res.json()
 }
+
 
 export const registerUser = async ({
     username,
@@ -33,6 +38,20 @@ export const registerUser = async ({
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({ username, email, password })
+    })
+  
+    return await res.json()
+  }
+  
+
+export const addMealEntry = async (mealText: string, token: string) => {
+    const res = await fetch(`${BASE_URL}/meal/add`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ mealText })
     })
   
     return await res.json()
