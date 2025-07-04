@@ -1,11 +1,21 @@
-import { Text, View } from "react-native";
+import { useEffect } from 'react'
+import { useRouter } from 'expo-router'
+import { useAuth } from '../src/context/AuthContext'
+import { ActivityIndicator, View } from 'react-native'
 import '../global.css'
 export default function Index() {
+  const { isLoggedIn, loading } = useAuth()
+  const router = useRouter()
+
+  useEffect(() => {
+    if (!loading) {
+      router.replace(isLoggedIn ? '/dashboard' : '/login')
+    }
+  }, [loading, isLoggedIn])
+
   return (
-    <View
-     className="flex-1 items-center justify-center"
-    >
-      <Text className="text-red-700">Hii Gaurav.</Text>
+    <View className="flex-1 items-center justify-center bg-white">
+      <ActivityIndicator size="large" color="blue" />
     </View>
-  );
+  )
 }
