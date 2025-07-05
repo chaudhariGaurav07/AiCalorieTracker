@@ -2,8 +2,8 @@
 import { useState } from 'react'
 import { Text, TextInput, TouchableOpacity, View, Alert, ScrollView } from 'react-native'
 import { useRouter } from 'expo-router'
-import { useAuth } from '../src/context/AuthContext'
-import { addMealEntry } from '../lib/api'
+import { useAuth } from '../../src/context/AuthContext'
+import { addMealEntry } from '../../lib/api'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 export default function AddMeal() {
@@ -26,6 +26,9 @@ export default function AddMeal() {
         setMealText('')
         router.push('/dashboard')
       } else {
+      
+      
+        
         Alert.alert('Error', res.message || 'Something went wrong')
       }
     } catch (err) {

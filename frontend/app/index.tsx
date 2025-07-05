@@ -9,7 +9,7 @@ export default function Index() {
 
   useEffect(() => {
     if (!loading) {
-      router.replace(isLoggedIn ? '/dashboard' : '/login')
+      router.replace(isLoggedIn ? '/(tabs)/dashboard' : '/(auth)/login')
     }
   }, [loading, isLoggedIn])
 

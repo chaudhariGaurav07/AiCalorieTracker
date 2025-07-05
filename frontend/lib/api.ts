@@ -45,7 +45,7 @@ export const registerUser = async ({
   
 
 export const addMealEntry = async (mealText: string, token: string) => {
-    const res = await fetch(`${BASE_URL}/meal/add`, {
+    const res = await fetch(`${BASE_URL}/ai/parse-food`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,
@@ -57,3 +57,11 @@ export const addMealEntry = async (mealText: string, token: string) => {
     return await res.json()
   }
   
+  export const forgotPasswordRequest = async (email: string) => {
+  const res = await fetch(`${BASE_URL}/users/forgot-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  })
+  return await res.json()
+}

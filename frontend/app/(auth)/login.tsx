@@ -1,24 +1,24 @@
 import { View, Text, TextInput, TouchableOpacity } from "react-native";
 import { useState } from "react";
 import { useRouter } from "expo-router";
-import { loginUser } from "../lib/api";
-import { storeToken } from "../lib/token";
+import { loginUser } from "../../lib/api";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useAuth } from "@/src/context/AuthContext";
 
 export default function Login() {
-  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [identifier, setIdentifier] = useState(""); // username or email
   const [loading, setLoading] = useState(false);
+  const { login } = useAuth(); // not storeToken
   const router = useRouter();
 
   const handleLogin = async () => {
     try {
-      setLoading(true)
-      const response = await loginUser({ identifier, password })
-      console.log("Login response:", response)
+      setLoading(true);
+      const response = await loginUser({ identifier, password });
+
       if (response.success) {
-        await storeToken(response.data.accessToken);
+        await login(response.data.accessToken);
         router.replace("/dashboard"); // Redirect after login
       } else {
         alert(response.message);
@@ -55,6 +55,10 @@ export default function Login() {
         <Text className="text-center text-white font-semibold">
           {loading ? "Logging in..." : "Login"}
         </Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity onPress={() => router.push("/forgot-password")}>
+        <Text className="text-blue-600 font-medium mt-3">Forgot Password?</Text>
       </TouchableOpacity>
 
       <TouchableOpacity onPress={() => router.push("/register")}>

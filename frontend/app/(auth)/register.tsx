@@ -1,7 +1,7 @@
 import { View, Text, TextInput, TouchableOpacity, Alert } from 'react-native'
 import { useState } from 'react'
 import { useRouter } from 'expo-router'
-import { registerUser } from '../lib/api'
+import { registerUser } from '../../lib/api'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 export default function Register() {
