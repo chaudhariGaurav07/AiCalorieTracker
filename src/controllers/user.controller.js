@@ -100,23 +100,18 @@ const loginUser = asyncHandler(async (req, res) => {
     secure: true, // modifieble only using server
   };
 
-  return res
-    .status(200)
-    .cookie("accessToken", accessToken, options)
-    .cookie("refreshToken", refreshToken, options)
-    .json(
-      new ApiResponce(
-        200,
-        {
-          user: loggedInUser,
-          accessToken,
-          refreshToken,
-        },
-        "User Logged in Successfully"
-      )
-    );
+  return res.status(200).json(
+    new ApiResponce(
+      200,
+      {
+        user: loggedInUser,
+        accessToken,
+        refreshToken,
+      },
+      "User Logged in Successfully"
+    )
+  );
 });
-
 
 const logoutUser = asyncHandler(async (req, res) => {
   await User.findByIdAndUpdate(
@@ -137,10 +132,8 @@ const logoutUser = asyncHandler(async (req, res) => {
   };
 
   return res
-    .status(200)
-    .clearCookie("accessToken", options)
-    .clearCookie("refreshToken", options)
-    .json(new ApiResponce(200, {}, "user loggedout successfully"));
+  .status(200)
+  .json(new ApiResponce(200, {}, "user logged out successfully"));
 });
 
 const updateAccountDetails = asyncHandler(async (req, res) => {
@@ -208,8 +201,7 @@ const forgotPassword = asyncHandler(async (req, res) => {
   await user.save({ validateBeforeSave: false });
 
   const resetUrl = `http://your-frontend-url/reset-password/${token}`;
-  console.log(" Reset Link:", resetUrl); // debuging 
-
+  console.log(" Reset Link:", resetUrl); // debuging
 
   await sendMail({
     to: user.email,
@@ -217,48 +209,51 @@ const forgotPassword = asyncHandler(async (req, res) => {
     html: `<p>Click <a href="${resetUrl}">here</a> to reset your password. Link valid for 15 mins.</p>`,
   });
 
-  return res.status(200).json(new ApiResponce(200, {}, "Reset link sent to email"));
+  return res
+    .status(200)
+    .json(new ApiResponce(200, {}, "Reset link sent to email"));
 });
 
 const resetPassword = asyncHandler(async (req, res) => {
-    const { token } = req.params;
-    const { newPassword } = req.body;
-  
-    //  Validate new password
-    if (!newPassword || newPassword.trim() === "") {
-      throw new ApiError(400, "New password is required");
-    }
-  
-    const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
-  
-    const user = await User.findOne({
-      resetPasswordToken: hashedToken,
-      resetPasswordExpires: { $gt: Date.now() },
-    });
-  
-    if (!user) {
-      throw new ApiError(400, "Invalid or expired token");
-    }
-  
-    // Assign and save new password
-    user.password = newPassword;
-    user.resetPasswordToken = undefined;
-    user.resetPasswordExpires = undefined;
-  
-    await user.save(); // saved in db
-  
-    return res
-      .status(200)
-      .json(new ApiResponce(200, {}, "Password reset successfully"));
+  const { token } = req.params;
+  const { newPassword } = req.body;
+
+  //  Validate new password
+  if (!newPassword || newPassword.trim() === "") {
+    throw new ApiError(400, "New password is required");
+  }
+
+  const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+
+  const user = await User.findOne({
+    resetPasswordToken: hashedToken,
+    resetPasswordExpires: { $gt: Date.now() },
   });
+
+  if (!user) {
+    throw new ApiError(400, "Invalid or expired token");
+  }
+
+  // Assign and save new password
+  user.password = newPassword;
+  user.resetPasswordToken = undefined;
+  user.resetPasswordExpires = undefined;
+
+  await user.save(); // saved in db
+
+  return res
+    .status(200)
+    .json(new ApiResponce(200, {}, "Password reset successfully"));
+});
 
 const refreshAccessToken = asyncHandler(async (req, res) => {
   try {
     const incomingRefreshToken =
       req.cookies.refreshToken || req.body.refreshToken;
 
+
     if (!incomingRefreshToken) {
-      throw new ApiError(401, "unauthorized request");
+      throw new ApiError(401, "No refresh token provided");
     }
 
     const decodedToken = jwt.verify(
@@ -266,39 +261,35 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
       process.env.REFRESH_TOKEN_SECRET
     );
 
+
     const user = await User.findById(decodedToken?._id);
 
     if (!user) {
-      throw new ApiError(401, " Invalid refresh token");
+      throw new ApiError(401, "User not found");
     }
 
-    if (incomingRefreshToken !== user?._refreshToken) {
-      throw new ApiError(401, "Refresh token is expired");
+
+    if (incomingRefreshToken !== user.refreshToken) {
+      // console.log("Tokens don't match");
+      throw new ApiError(401, "Refresh token mismatch");
     }
 
-    const options = {
-      httpOnly: true,
-      secure: true,
-    };
-
-    const { accessToken, newRefreshToken } =
+    const { accessToken, refreshToken: newRefreshToken } =
       await generateAccessAndRefreshToken(user._id);
 
-    return res
-      .status(200)
-      .cookie("accessToken", accessToken, options)
-      .cookie("refreshToken", refreshToken, options)
-      .json(
-        new ApiResponce(
-          200,
-          { accessToken, refreshToken: newRefreshToken },
-          "Access token refresh successfully"
-        )
-      );
+    return res.status(200).json(
+      new ApiResponce(
+        200,
+        { accessToken, refreshToken: newRefreshToken },
+        "Access token refreshed"
+      )
+    );
   } catch (error) {
+    // console.log(" JWT error:", error?.message);
     throw new ApiError(401, error?.message || "invalid refresh token");
   }
 });
+
 
 export {
   registerUser,
@@ -308,5 +299,5 @@ export {
   changeCurrentPassword,
   refreshAccessToken,
   forgotPassword,
-  resetPassword
+  resetPassword,
 };
