@@ -1,69 +1,119 @@
-import { View, Text, TextInput, TouchableOpacity } from "react-native";
-import { useState } from "react";
-import { useRouter } from "expo-router";
-import { loginUser } from "../../lib/api";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { useAuth } from "@/src/context/AuthContext";
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+} from 'react-native';
+import { useRouter } from 'expo-router';
+import { useAuth } from '@/context/AuthContext';
+import { LinearGradient } from 'expo-linear-gradient';
 
-export default function Login() {
-  const [password, setPassword] = useState("");
-  const [identifier, setIdentifier] = useState(""); // username or email
+export default function LoginScreen() {
+  const [identifier, setIdentifier] = useState(''); // email or username
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth(); // not storeToken
+  const { login , hasGoal} = useAuth();
   const router = useRouter();
 
   const handleLogin = async () => {
+    if (!identifier || !password) {
+      Alert.alert('Error', 'Please fill in all fields');
+      return;
+    }
+  
+    setLoading(true);
     try {
-      setLoading(true);
-      const response = await loginUser({ identifier, password });
+      await login(identifier, password); // Auth + checkGoal internally
 
-      if (response.success) {
-        await login(response.data.accessToken);
-        router.replace("/dashboard"); // Redirect after login
+      if (!hasGoal) {
+        router.replace('/set-goal');
       } else {
-        alert(response.message);
+        router.replace('/dashboard');
       }
-    } catch (err) {
-      alert("Login failed");
+     
+    } catch (error: any) {
+      Alert.alert('Login Error', error?.message || 'Login failed');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <SafeAreaView className="flex-1 justify-center items-center px-4 bg-white">
-      <Text className="text-2xl font-bold mb-6 text-black">Login</Text>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      className="flex-1"
+    >
+      <LinearGradient colors={['#3B82F6', '#1D4ED8']} className="flex-1">
+        <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
+          <View className="flex-1 justify-center px-6">
+            <View className="bg-white rounded-3xl p-8 shadow-2xl">
+              <Text className="text-3xl font-bold text-center text-gray-800 mb-2">
+                Welcome Back!
+              </Text>
+              <Text className="text-gray-600 text-center mb-8">
+                Sign in to continue your fitness journey
+              </Text>
 
-      <TextInput
-        placeholder="Email or Username"
-        className="w-full px-4 py-3 rounded-lg bg-gray-100 mb-3"
-        onChangeText={setIdentifier}
-        value={identifier}
-      />
-      <TextInput
-        placeholder="Password"
-        secureTextEntry
-        className="w-full px-4 py-3 rounded-lg bg-gray-100 mb-6"
-        onChangeText={setPassword}
-        value={password}
-      />
+              <View className="space-y-4">
+                <View>
+                  <Text className="text-gray-700 font-medium mb-2">
+                    Email or Username
+                  </Text>
+                  <TextInput
+                    className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-800"
+                    placeholder="Enter email or username"
+                    value={identifier}
+                    onChangeText={setIdentifier}
+                    autoCapitalize="none"
+                  />
+                </View>
 
-      <TouchableOpacity
-        onPress={handleLogin}
-        className="w-full bg-blue-600 py-3 rounded-lg"
-      >
-        <Text className="text-center text-white font-semibold">
-          {loading ? "Logging in..." : "Login"}
-        </Text>
-      </TouchableOpacity>
+                <View>
+                  <Text className="text-gray-700 font-medium mb-2">Password</Text>
+                  <TextInput
+                    className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-800"
+                    placeholder="Enter your password"
+                    value={password}
+                    onChangeText={setPassword}
+                    secureTextEntry
+                  />
+                </View>
 
-      <TouchableOpacity onPress={() => router.push("/forgot-password")}>
-        <Text className="text-blue-600 font-medium mt-3">Forgot Password?</Text>
-      </TouchableOpacity>
+                <TouchableOpacity
+                  className="bg-blue-600 rounded-xl py-3 mt-6"
+                  onPress={handleLogin}
+                  disabled={loading}
+                >
+                  <Text className="text-white font-semibold text-center text-lg">
+                    {loading ? 'Signing In...' : 'Sign In'}
+                  </Text>
+                </TouchableOpacity>
 
-      <TouchableOpacity onPress={() => router.push("/register")}>
-        <Text className="mt-4 text-blue-600 font-medium">Create account</Text>
-      </TouchableOpacity>
-    </SafeAreaView>
+                <TouchableOpacity
+                  className="py-2"
+                  onPress={() => router.push('./auth/forgot-password')}
+                >
+                  <Text className="text-blue-600 text-center font-medium">
+                    Forgot Password?
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              <View className="flex-row justify-center mt-6">
+                <Text className="text-gray-600">Don't have an account? </Text>
+                <TouchableOpacity onPress={() => router.push('./auth/register')}>
+                  <Text className="text-blue-600 font-semibold">Sign Up</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </ScrollView>
+      </LinearGradient>
+    </KeyboardAvoidingView>
   );
 }
