@@ -1,19 +1,31 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, RefreshControl, Dimensions } from 'react-native';
-import { useAuth } from '@/context/AuthContext';
-import { LineChart } from 'react-native-chart-kit';
-import { Calendar, TrendingUp, Target, Activity } from 'lucide-react-native';
+import {
+  View,
+  Text,
+  ScrollView,
+  SafeAreaView,
+  TouchableOpacity,
+  Dimensions,
+  Alert,
+} from 'react-native';
+import { useAuth } from '../../context/AuthContext';
+import { LineChart, BarChart } from 'react-native-chart-kit';
 
 const screenWidth = Dimensions.get('window').width;
+const BASE_URL = 'https://aicalorietracker.onrender.com/api/v1';
 
-interface HistoryData {
-  date: string;
-  calories: number;
-  protein: number;
-  carbs: number;
-  fats: number;
-  steps: number;
-  goal: {
+interface ProgressData {
+  weekly: {
+    calories: number[];
+    weight: number[];
+    labels: string[];
+  };
+  monthly: {
+    calories: number[];
+    weight: number[];
+    labels: string[];
+  };
+  averages: {
     calories: number;
     protein: number;
     carbs: number;
@@ -21,230 +33,187 @@ interface HistoryData {
   };
 }
 
-export default function ProgressScreen() {
+export default function Progress() {
   const { token } = useAuth();
-  const [history, setHistory] = useState<HistoryData[]>([]);
+  const [progressData, setProgressData] = useState<ProgressData | null>(null);
+  const [timeframe, setTimeframe] = useState<'weekly' | 'monthly'>('weekly');
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [viewMode, setViewMode] = useState<'week' | 'month'>('week');
-
-  const fetchHistory = async () => {
-    try {
-      const res = await fetch(
-        'https://aicalorietracker.onrender.com/api/v1/logs/history',
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      const json = await res.json();
-      if (res.ok && json.success) {
-        setHistory(json.logs || []);
-      } else {
-        setHistory([]);
-      }
-    } catch (error) {
-      console.error('Fetch error:', error);
-      setHistory([]);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
 
   useEffect(() => {
-    if (token) fetchHistory();
-  }, [token]);
+    fetchProgressData();
+  }, []);
 
-  const onRefresh = () => {
-    setRefreshing(true);
-    fetchHistory();
-  };
+  const fetchProgressData = async () => {
+    try {
+      const response = await fetch(`${BASE_URL}/logs/history`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
-  const getChartData = () => {
-    const data =
-      viewMode === 'month'
-        ? history.slice(-30)
-        : history.slice(-7);
+      const json = await response.json();
 
-    if (data.length === 0) {
-      return {
-        labels: ['No Data'],
-        datasets: [{ data: [0] }],
-      };
-    }
-
-    return {
-      labels: data.map((item) =>
-        new Date(item.date).toLocaleDateString('en-US', { weekday: 'short' })
-      ),
-      datasets: [
-        {
-          data: data.map((item) => item.calories),
-          color: (opacity = 1) => `rgba(59,130,246,${opacity})`,
-          strokeWidth: 2,
+      if (response.ok && json.data) {
+        setProgressData(json.data);
+      } else {
+        throw new Error(json.message || 'Failed to fetch data');
+      }
+    } catch (error: any) {
+      console.error('Progress fetch error:', error);
+      Alert.alert('Error', error.message || 'Could not load progress data.');
+      // Optional fallback
+      setProgressData({
+        weekly: {
+          calories: [1850, 2100, 1950, 2200, 1900, 2050, 1980],
+          weight: [75.2, 75.1, 75.3, 75.0, 74.9, 74.8, 74.7],
+          labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
         },
-      ],
-    };
+        monthly: {
+          calories: [1920, 1980, 2050, 1890],
+          weight: [76.5, 75.8, 75.2, 74.7],
+          labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+        },
+        averages: {
+          calories: 1975,
+          protein: 142,
+          carbs: 198,
+          fats: 58,
+        },
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const getAverages = () => {
-    if (history.length === 0) return { calories: 0, protein: 0, carbs: 0, fats: 0 };
-    const total = history.reduce(
-      (acc, curr) => ({
-        calories: acc.calories + curr.calories,
-        protein: acc.protein + curr.protein,
-        carbs: acc.carbs + curr.carbs,
-        fats: acc.fats + curr.fats,
-      }),
-      { calories: 0, protein: 0, carbs: 0, fats: 0 }
-    );
-    const count = history.length;
-    return {
-      calories: Math.round(total.calories / count),
-      protein: Math.round(total.protein / count),
-      carbs: Math.round(total.carbs / count),
-      fats: Math.round(total.fats / count),
-    };
-  };
+  const currentData = progressData?.[timeframe];
 
-  const averages = getAverages();
+  const chartConfig = {
+    backgroundGradientFrom: '#ffffff',
+    backgroundGradientTo: '#ffffff',
+    color: (opacity = 1) => `rgba(14, 165, 233, ${opacity})`,
+    strokeWidth: 3,
+    barPercentage: 0.7,
+    decimalPlaces: 0,
+    useShadowColorFromDataset: false,
+  };
 
   if (loading) {
     return (
-      <View className="flex-1 justify-center items-center bg-gray-50">
-        <Text className="text-gray-600">Loading progress...</Text>
-      </View>
+      <SafeAreaView className="flex-1 justify-center items-center bg-gray-50">
+        <Text className="text-gray-600 font-inter">Loading progress...</Text>
+      </SafeAreaView>
+    );
+  }
+
+  if (!progressData || !currentData) {
+    return (
+      <SafeAreaView className="flex-1 justify-center items-center bg-gray-50">
+        <Text className="text-gray-600 font-inter">No progress data available yet.</Text>
+      </SafeAreaView>
     );
   }
 
   return (
-    <ScrollView
-      className="flex-1 bg-gray-50"
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-    >
-      <View className="px-4 pt-12 pb-6">
-        <View className="mb-6">
-          <Text className="text-2xl font-bold text-gray-800">Progress Tracking</Text>
-          <Text className="text-gray-600 mt-1">
-            Monitor your nutrition and fitness journey
-          </Text>
-        </View>
+    <SafeAreaView className="flex-1 bg-gray-50">
+      <View className="px-6 py-4 bg-white">
+        <Text className="text-2xl font-inter-bold text-gray-900">Progress</Text>
+        <Text className="text-gray-600 font-inter mt-1">
+          Track your fitness journey
+        </Text>
+      </View>
 
-        {/* Toggle View */}
-        <View className="bg-white rounded-2xl p-4 shadow-sm mb-6">
-          <View className="flex-row">
-            {['week', 'month'].map((mode) => (
+      <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+        {/* Toggle */}
+        <View className="bg-white mx-6 mt-4 rounded-2xl p-4 shadow-sm">
+          <View className="flex-row bg-gray-100 rounded-xl p-1">
+            {['weekly', 'monthly'].map((type) => (
               <TouchableOpacity
-                key={mode}
-                className={`flex-1 py-2 rounded-lg ${viewMode === mode ? 'bg-primary-500' : 'bg-gray-100'} ${
-                  mode === 'month' ? 'ml-2' : ''
+                key={type}
+                className={`flex-1 py-2 px-4 rounded-lg ${
+                  timeframe === type ? 'bg-white shadow-sm' : ''
                 }`}
-                onPress={() => setViewMode(mode as 'week' | 'month')}
+                onPress={() => setTimeframe(type as 'weekly' | 'monthly')}
               >
                 <Text
-                  className={`text-center font-medium ${
-                    viewMode === mode ? 'text-white' : 'text-gray-600'
+                  className={`text-center font-inter-medium ${
+                    timeframe === type ? 'text-primary-600' : 'text-gray-600'
                   }`}
                 >
-                  {mode === 'week' ? 'Week' : 'Month'}
+                  {type.charAt(0).toUpperCase() + type.slice(1)}
                 </Text>
               </TouchableOpacity>
             ))}
           </View>
         </View>
 
-        {/* Chart */}
-        <View className="bg-white rounded-2xl p-6 shadow-sm mb-6">
-          <View className="flex-row items-center justify-between mb-4">
-            <Text className="text-lg font-semibold text-gray-800">Calorie Trend</Text>
-            <TrendingUp size={24} color="#3B82F6" />
-          </View>
+        {/* Calorie Intake */}
+        <View className="bg-white mx-6 mt-4 rounded-2xl p-4 shadow-sm">
+          <Text className="text-lg font-inter-bold text-gray-900 mb-4">Calorie Intake</Text>
+          <LineChart
+            data={{
+              labels: currentData.labels,
+              datasets: [{ data: currentData.calories }],
+            }}
+            width={screenWidth - 32}
+            height={220}
+            chartConfig={chartConfig}
+            bezier
+            style={{ borderRadius: 16 }}
+          />
+        </View>
 
-          {history.length > 0 ? (
-            <LineChart
-              data={getChartData()}
-              width={screenWidth - 64}
-              height={220}
-              yAxisSuffix=" cal"
-              chartConfig={{
-                backgroundColor: '#ffffff',
-                backgroundGradientFrom: '#ffffff',
-                backgroundGradientTo: '#ffffff',
-                decimalPlaces: 0,
-                color: (opacity = 1) => `rgba(59, 130, 246, ${opacity})`,
-                labelColor: (opacity = 1) => `rgba(107, 114, 128, ${opacity})`,
-                propsForDots: {
-                  r: '5',
-                  strokeWidth: '2',
-                  stroke: '#3B82F6',
+        {/* Average Macros */}
+        <View className="bg-white mx-6 mt-4 rounded-2xl p-4 shadow-sm">
+          <Text className="text-lg font-inter-bold text-gray-900 mb-4">Average Daily Macros</Text>
+          <BarChart
+            data={{
+              labels: ['Protein', 'Carbs', 'Fats'],
+              datasets: [
+                {
+                  data: [
+                    progressData.averages.protein,
+                    progressData.averages.carbs,
+                    progressData.averages.fats,
+                  ],
                 },
-              }}
-              bezier
-              style={{ marginVertical: 8, borderRadius: 16 }}
-            />
-          ) : (
-            <View className="h-48 justify-center items-center bg-gray-50 rounded-xl">
-              <Calendar size={48} color="#9CA3AF" />
-              <Text className="text-gray-500 mt-2">No data available</Text>
-            </View>
-          )}
+              ],
+            }}
+            width={screenWidth - 32}
+            height={220}
+            chartConfig={{
+              ...chartConfig,
+              color: (opacity = 1) => `rgba(34,197,94,${opacity})`,
+            }}
+            style={{ borderRadius: 16 }} yAxisLabel={''} yAxisSuffix={''}          />
         </View>
 
-        {/* Averages */}
-        <View className="bg-white rounded-2xl p-6 shadow-sm mb-6">
-          <View className="flex-row items-center justify-between mb-4">
-            <Text className="text-lg font-semibold text-gray-800">Averages</Text>
-            <Target size={24} color="#3B82F6" />
-          </View>
-
-          {['calories', 'protein', 'carbs', 'fats'].map((key) => (
-            <View key={key} className="flex-row justify-between items-center py-1">
-              <Text className="text-gray-600 capitalize">{key}</Text>
-              <Text className="text-lg font-semibold text-gray-800">
-                {averages[key as keyof typeof averages]}
-                {key === 'calories' ? ' cal' : 'g'}
+        {/* Summary */}
+        <View className="bg-white mx-6 mt-4 rounded-2xl p-4 shadow-sm mb-8">
+          <Text className="text-lg font-inter-bold text-gray-900 mb-4">
+            {timeframe === 'weekly' ? 'This Week' : 'This Month'} Summary
+          </Text>
+          <View className="flex-row justify-between">
+            <View className="items-center">
+              <Text className="text-2xl font-inter-bold text-primary-600">
+                {progressData.averages.calories}
               </Text>
+              <Text className="text-gray-600 font-inter text-sm">Avg Calories</Text>
             </View>
-          ))}
-        </View>
-
-        {/* Recent Activity */}
-        <View className="bg-white rounded-2xl p-6 shadow-sm mb-6">
-          <View className="flex-row items-center justify-between mb-4">
-            <Text className="text-lg font-semibold text-gray-800">Recent Activity</Text>
-            <Activity size={24} color="#3B82F6" />
+            <View className="items-center">
+              <Text className="text-2xl font-inter-bold text-secondary-600">
+                {progressData.averages.protein}g
+              </Text>
+              <Text className="text-gray-600 font-inter text-sm">Avg Protein</Text>
+            </View>
+            <View className="items-center">
+              <Text className="text-2xl font-inter-bold text-accent-600">
+                {currentData.calories.length > 0
+                  ? Math.max(...currentData.calories) - Math.min(...currentData.calories)
+                  : 0}
+              </Text>
+              <Text className="text-gray-600 font-inter text-sm">Cal Range</Text>
+            </View>
           </View>
-
-          {history.length > 0 ? (
-            <View className="space-y-3">
-              {history.slice(0, 5).map((day, index) => (
-                <View key={index} className="flex-row justify-between items-center py-2 border-b border-gray-100">
-                  <View>
-                    <Text className="font-medium text-gray-800">
-                      {new Date(day.date).toLocaleDateString('en-US', {
-                        weekday: 'short',
-                        month: 'short',
-                        day: 'numeric',
-                      })}
-                    </Text>
-                    <Text className="text-sm text-gray-600">{day.steps} steps</Text>
-                  </View>
-                  <View className="items-end">
-                    <Text className="font-semibold text-primary-500">
-                      {day.calories} cal
-                    </Text>
-                    <Text className="text-sm text-gray-600">
-                      {day.protein}p / {day.carbs}c / {day.fats}f
-                    </Text>
-                  </View>
-                </View>
-              ))}
-            </View>
-          ) : (
-            <Text className="text-gray-500 text-center py-4">No activity data available</Text>
-          )}
         </View>
-      </View>
-    </ScrollView>
+      </ScrollView>
+    </SafeAreaView>
   );
 }

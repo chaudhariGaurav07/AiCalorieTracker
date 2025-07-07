@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useRouter } from 'expo-router';
 
 interface User {
   _id: string;
@@ -7,148 +8,162 @@ interface User {
   username: string;
 }
 
+interface GoalInput {
+  gender: 'male' | 'female';
+  age: number;
+  height: number;
+  weight: number;
+  activityLevel: 'sedentary' | 'light' | 'moderate' | 'active' | 'very active';
+  goalType: 'maintain' | 'gain' | 'loss';
+}
+
 interface AuthContextType {
   user: User | null;
   token: string | null;
   hasGoal: boolean;
-  login: (identifier: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<void>;
   register: (email: string, username: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
-  updateProfile: (email: string, username: string) => Promise<void>;
-  changePassword: (oldPassword: string, newPassword: string) => Promise<void>;
-  forgotPassword: (email: string) => Promise<void>;
+  setGoal: (goal: GoalInput) => Promise<void>;
+  checkGoal: () => Promise<void>;
   loading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export function useAuth() {
+export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (!context) throw new Error('useAuth must be used within AuthProvider');
+  if (!context) throw new Error('useAuth must be used within an AuthProvider');
   return context;
-}
+};
 
-const API = 'https://aicalorietracker.onrender.com/api/v1/users';
-const API_BASE_URL = 'https://aicalorietracker.onrender.com/api/v1';
+const API_BASE = 'https://aicalorietracker.onrender.com/api/v1/users';
+const GOAL_API = 'https://aicalorietracker.onrender.com/api/v1/goals';
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
+export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
-  const [hasGoal, setHasGoal] = useState<boolean>(false);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [hasGoal, setHasGoal] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
     const loadStoredAuth = async () => {
       try {
-        const storedToken = await AsyncStorage.getItem('access_token');
+        const storedToken = await AsyncStorage.getItem('auth_token');
         const storedUser = await AsyncStorage.getItem('user');
+        const storedHasGoal = await AsyncStorage.getItem('has_goal');
+
         if (storedToken && storedUser) {
           setToken(storedToken);
           setUser(JSON.parse(storedUser));
-          await checkGoal(storedToken);
+          setHasGoal(storedHasGoal === 'true');
         }
-      } catch (err) {
-        console.error('Error loading auth data:', err);
+      } catch (error) {
+        console.error('Error loading stored auth:', error);
       } finally {
         setLoading(false);
       }
     };
+
     loadStoredAuth();
   }, []);
 
-  const checkGoal = async (accessToken: string) => {
-    try {
-      const res = await fetch(`${API_BASE_URL}/goals/get`, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      });
-      const data = await res.json();
-      setHasGoal(!!data?.calories); // check if calories is set
-    } catch (err) {
-      setHasGoal(false);
-    }
-  };
-
-  const login = async (identifier: string, password: string) => {
-    const res = await fetch(`${API}/login`, {
+  const login = async (email: string, password: string) => {
+    const res = await fetch(`${API_BASE}/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: identifier, email: identifier, password }),
+      body: JSON.stringify({ email, password }),
     });
-    const json = await res.json();
-    if (!res.ok) throw new Error(json.message || 'Login failed');
 
-    const { accessToken, user: userData } = json.data;
-    await AsyncStorage.setItem('access_token', accessToken);
-    await AsyncStorage.setItem('user', JSON.stringify(userData));
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Login failed');
+
+    const { accessToken, user: userData } = data.data;
+
     setToken(accessToken);
     setUser(userData);
+
+    await AsyncStorage.setItem('auth_token', accessToken);
+    await AsyncStorage.setItem('user', JSON.stringify(userData));
+
     await checkGoal(accessToken);
   };
 
   const register = async (email: string, username: string, password: string) => {
-    const res = await fetch(`${API}/register`, {
+    const res = await fetch(`${API_BASE}/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, username, password }),
     });
+
     const data = await res.json();
     if (!res.ok) throw new Error(data.message || 'Registration failed');
+
+    const { accessToken, user: userData } = data.data;
+
+    setToken(accessToken);
+    setUser(userData);
+    setHasGoal(false);
+
+    await AsyncStorage.setItem('auth_token', accessToken);
+    await AsyncStorage.setItem('user', JSON.stringify(userData));
+    await AsyncStorage.setItem('has_goal', 'false');
   };
 
   const logout = async () => {
     try {
-      await fetch(`${API}/logout`, {
+      await fetch(`${API_BASE}/logout`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
       });
-    } catch (e) {
-      console.warn('Logout failed on server:', e);
+    } catch (error) {
+      console.warn('Logout request failed. Clearing local data anyway.');
     } finally {
-      await AsyncStorage.multiRemove(['access_token', 'user']);
-      setToken(null);
       setUser(null);
+      setToken(null);
       setHasGoal(false);
+
+      await AsyncStorage.multiRemove(['auth_token', 'user', 'has_goal']);
+      router.replace('/auth/login');
     }
   };
 
-  const updateProfile = async (email: string, username: string) => {
-    const res = await fetch(`${API}/update-account`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ email, username }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'Failed to update profile');
-    setUser(data.data);
-    await AsyncStorage.setItem('user', JSON.stringify(data.data));
-  };
-
-  const changePassword = async (oldPassword: string, newPassword: string) => {
-    const res = await fetch(`${API}/change-password`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ oldPassword, newPassword }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'Failed to change password');
-  };
-
-  const forgotPassword = async (email: string) => {
-    const res = await fetch(`${API}/forgot-password`, {
+  const setGoal = async (goal: GoalInput) => {
+    const res = await fetch(`${GOAL_API}/set`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email }),
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(goal),
     });
+
     const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'Failed to send reset email');
+    if (!res.ok) throw new Error(data.message || 'Failed to set goal');
+
+    setHasGoal(true);
+    await AsyncStorage.setItem('has_goal', 'true');
+  };
+
+  const checkGoal = async (accessToken?: string) => {
+    try {
+      const authToken = accessToken || token;
+      const res = await fetch(`${GOAL_API}/get`, {
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data?.data?.targetCalories) throw new Error('Goal not set');
+
+      setHasGoal(true);
+      await AsyncStorage.setItem('has_goal', 'true');
+    } catch (err) {
+      setHasGoal(false);
+      await AsyncStorage.setItem('has_goal', 'false');
+    }
   };
 
   return (
@@ -160,13 +175,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         login,
         register,
         logout,
-        updateProfile,
-        changePassword,
-        forgotPassword,
+        setGoal,
+        checkGoal,
         loading,
       }}
     >
       {children}
     </AuthContext.Provider>
   );
-}
+};

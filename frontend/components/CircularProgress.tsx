@@ -1,58 +1,59 @@
-import React, { useEffect, useRef } from 'react';
-import { Animated, View } from 'react-native';
+import React from 'react';
+import { View, StyleSheet } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 
 interface CircularProgressProps {
   size: number;
   strokeWidth: number;
-  percentage: number;
+  progress: number; // value between 0–100
   color: string;
+  backgroundColor?: string;
+  children?: React.ReactNode;
 }
 
-export function CircularProgress({ size, strokeWidth, percentage, color }: CircularProgressProps) {
+export default function CircularProgress({
+  size,
+  strokeWidth,
+  progress,
+  color,
+  backgroundColor = '#e5e7eb',
+  children,
+}: CircularProgressProps) {
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
-
-  const animatedValue = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    Animated.timing(animatedValue, {
-      toValue: Math.min(Math.max(percentage, 0), 100), // Clamp 0-100
-      duration: 800,
-      useNativeDriver: true,
-    }).start();
-  }, [percentage]);
-
-  const strokeDashoffset = animatedValue.interpolate({
-    inputRange: [0, 100],
-    outputRange: [circumference, 0],
-  });
+  const strokeDashoffset = circumference - (progress / 100) * circumference;
 
   return (
-    <View style={{ width: size, height: size }}>
-      <Svg width={size} height={size} style={{ transform: [{ rotate: '-90deg' }] }}>
+    <View style={{ width: size, height: size }} className="justify-center items-center">
+      <Svg width={size} height={size} style={StyleSheet.absoluteFill}>
+        {/* Background circle */}
         <Circle
           cx={size / 2}
           cy={size / 2}
           r={radius}
-          stroke="#E5E7EB"
+          stroke={backgroundColor}
           strokeWidth={strokeWidth}
           fill="transparent"
         />
-        <AnimatedCircle
+        {/* Foreground (progress) circle */}
+        <Circle
           cx={size / 2}
           cy={size / 2}
           r={radius}
           stroke={color}
           strokeWidth={strokeWidth}
-          strokeDasharray={`${circumference} ${circumference}`}
+          strokeDasharray={`${circumference}, ${circumference}`}
           strokeDashoffset={strokeDashoffset}
           strokeLinecap="round"
           fill="transparent"
+          transform={`rotate(-90 ${size / 2} ${size / 2})`} // rotate to start from top
         />
       </Svg>
+
+      {/* Optional center content (e.g. text) */}
+      <View className="absolute items-center justify-center">
+        {children}
+      </View>
     </View>
   );
 }
-
-const AnimatedCircle = Animated.createAnimatedComponent(Circle);

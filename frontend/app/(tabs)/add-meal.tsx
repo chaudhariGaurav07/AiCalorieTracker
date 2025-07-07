@@ -4,259 +4,223 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
+  SafeAreaView,
   Alert,
-  ScrollView,
   Image,
+  KeyboardAvoidingView,
+  Platform,
+  ActivityIndicator,
 } from 'react-native';
-import { useAuth } from '@/context/AuthContext';
-import { Camera, Upload, Zap } from 'lucide-react-native';
+import { useAuth } from '../../context/AuthContext';
+import { Zap, Camera, Upload } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 
-export default function AddMealScreen() {
-  const [mealDescription, setMealDescription] = useState('');
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const [analyzing, setAnalyzing] = useState(false);
+const BASE_URL = 'https://aicalorietracker.onrender.com/api/v1';
+
+interface MealPreview {
+  mealText: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fats: number;
+  confidence: number;
+}
+
+export default function AddMeal() {
   const { token } = useAuth();
+  const [mealText, setMealText] = useState('');
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [mealPreview, setMealPreview] = useState<MealPreview | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  const analyzeTextMeal = async () => {
-    if (!mealDescription.trim()) {
-      Alert.alert('Error', 'Please describe your meal');
-      return;
-    }
+  const analyzeMealText = async () => {
+    if (!mealText.trim()) return Alert.alert('Error', 'Please describe your meal');
+    setLoading(true);
 
-    setAnalyzing(true);
     try {
-      const response = await fetch(
-        'https://aicalorietracker.onrender.com/api/v1/meal/text',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            mealText: mealDescription,
-          }),
-        }
-      );
+      const response = await fetch(`${BASE_URL}/ai/parse-food`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ mealText }),
+      });
 
-      const resData = await response.json();
+      if (!response.ok) throw new Error('Failed to analyze meal text');
 
-      if (response.ok && resData.success) {
-        const { calories, protein, carbs, fats } = resData.data.totals;
-        Alert.alert(
-          'Meal Added Successfully!',
-          `Calories: ${calories}\nProtein: ${protein}g\nCarbs: ${carbs}g\nFats: ${fats}g`,
-          [
-            {
-              text: 'OK',
-              onPress: () => {
-                setMealDescription('');
-                setSelectedImage(null);
-              },
-            },
-          ]
-        );
-      } else {
-        Alert.alert('Error', resData.message || 'Failed to analyze meal');
-      }
-    } catch (error) {
-      Alert.alert('Error', 'Network error. Please try again.');
+      const data = await response.json();
+      setMealPreview(data.data); // ⬅️ Ensure backend returns `.data`
+    } catch (err) {
+      console.error(err);
+      Alert.alert('Error', 'Something went wrong while analyzing.');
     } finally {
-      setAnalyzing(false);
+      setLoading(false);
     }
   };
 
-  const pickImageFromGallery = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [4, 3],
-      quality: 0.8,
-    });
+  const uploadMealImage = async (fromCamera = false) => {
+    const permission = fromCamera
+      ? await ImagePicker.requestCameraPermissionsAsync()
+      : await ImagePicker.requestMediaLibraryPermissionsAsync();
 
-    if (!result.canceled) {
-      setSelectedImage(result.assets[0].uri);
-    }
-  };
+    if (!permission.granted) return Alert.alert('Permission Required', 'Camera or gallery access is needed.');
 
-  const takePicture = async () => {
-    const result = await ImagePicker.launchCameraAsync({
-      allowsEditing: true,
-      aspect: [4, 3],
-      quality: 0.8,
-    });
+    const result = fromCamera
+      ? await ImagePicker.launchCameraAsync({ quality: 1, allowsEditing: true })
+      : await ImagePicker.launchImageLibraryAsync({ quality: 1, allowsEditing: true });
 
-    if (!result.canceled) {
-      setSelectedImage(result.assets[0].uri);
-    }
-  };
+    if (!result.canceled && result.assets?.length) {
+      const uri = result.assets[0].uri;
+      setSelectedImage(uri);
+      setLoading(true);
 
-  const analyzeMealWithPhoto = async () => {
-    if (!selectedImage) {
-      Alert.alert('Error', 'Please select an image first');
-      return;
-    }
+      try {
+        const formData = new FormData();
+        formData.append('photo', {
+          uri,
+          type: 'image/jpeg',
+          name: 'meal.jpg',
+        } as any);
 
-    setAnalyzing(true);
-    try {
-      const formData = new FormData();
-      formData.append('image', {
-        uri: selectedImage,
-        type: 'image/jpeg',
-        name: 'meal.jpg',
-      } as any);
+        if (mealText.trim()) {
+          formData.append('mealText', mealText);
+        }
 
-      if (mealDescription.trim()) {
-        formData.append('mealText', mealDescription); //  Correct key
-      }
-
-      const response = await fetch(
-        'https://aicalorietracker.onrender.com/api/v1/meal/photo',
-        {
+        const response = await fetch(`${BASE_URL}/meal/add-with-photo`, {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'multipart/form-data',
+            Authorization: `Bearer ${token}`,
           },
           body: formData,
-        }
-      );
+        });
 
-      const resData = await response.json();
+        const data = await response.json();
+        if (!response.ok) throw new Error(data?.message || 'Failed to upload image');
 
-      if (response.ok && resData.success) {
-        const { calories, protein, carbs, fats } = resData.data.totals;
-        Alert.alert(
-          'Meal Added Successfully!',
-          `Calories: ${calories}\nProtein: ${protein}g\nCarbs: ${carbs}g\nFats: ${fats}g`,
-          [
-            {
-              text: 'OK',
-              onPress: () => {
-                setMealDescription('');
-                setSelectedImage(null);
-              },
-            },
-          ]
-        );
-      } else {
-        Alert.alert('Error', resData.message || 'Failed to analyze meal photo');
+        setMealPreview(data.data);
+        Alert.alert('Success', 'Meal logged successfully!');
+      } catch (err) {
+        console.error('Upload error:', err);
+        Alert.alert('Error', 'Failed to upload image.');
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      Alert.alert('Error', 'Network error. Please try again.');
-    } finally {
-      setAnalyzing(false);
     }
   };
 
   return (
-    <ScrollView className="flex-1 bg-gray-50">
-      <View className="px-4 pt-12 pb-6">
-        {/* Header */}
-        <View className="mb-6">
-          <Text className="text-2xl font-bold text-gray-800">Add New Meal</Text>
-          <Text className="text-gray-600 mt-1">
-            Describe your meal or take a photo for AI analysis
+    <SafeAreaView className="flex-1 bg-gray-50">
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        className="flex-1"
+      >
+        <View className="px-6 py-4 bg-white">
+          <Text className="text-2xl font-inter-bold text-gray-900">Add Meal</Text>
+          <Text className="text-gray-600 font-inter mt-1">
+            Describe your meal or take a photo
           </Text>
         </View>
 
-        {/* Meal Description */}
-        <View className="bg-white rounded-2xl p-6 shadow-sm mb-6">
-          <Text className="text-lg font-semibold text-gray-800 mb-4">
-            Describe Your Meal
-          </Text>
-          <TextInput
-            className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-800 min-h-24"
-            placeholder="e.g., 2 scrambled eggs, 1 slice of toast, 1 banana..."
-            value={mealDescription}
-            onChangeText={setMealDescription}
-            multiline
-            textAlignVertical="top"
-          />
-          <TouchableOpacity
-            className="bg-primary-500 rounded-xl py-3 mt-4 flex-row items-center justify-center"
-            onPress={analyzeTextMeal}
-            disabled={analyzing}
-          >
-            <Zap size={20} color="white" />
-            <Text className="text-white font-semibold text-lg ml-2">
-              {analyzing ? 'Analyzing...' : 'Analyze with AI'}
-            </Text>
-          </TouchableOpacity>
-        </View>
+        <View className="flex-1 px-6 py-4">
+          {/* Text Input */}
+          <View className="bg-white rounded-2xl p-4 shadow-sm mb-4">
+            <Text className="text-gray-700 font-inter-medium mb-3">Describe your meal</Text>
+            <View className="bg-gray-50 rounded-xl p-4 mb-4 min-h-[80px]">
+              <TextInput
+                className="text-gray-900 font-inter text-base"
+                placeholder="e.g., Paneer with rice and salad"
+                value={mealText}
+                onChangeText={setMealText}
+                multiline
+                textAlignVertical="top"
+              />
+            </View>
+            <TouchableOpacity
+              className={`bg-primary-500 rounded-xl py-3 px-4 flex-row items-center justify-center ${loading ? 'opacity-50' : ''}`}
+              onPress={analyzeMealText}
+              disabled={loading}
+            >
+              <Zap size={20} color="white" />
+              <Text className="text-white font-inter-bold ml-2">
+                {loading ? 'Analyzing...' : 'Analyze with AI'}
+              </Text>
+            </TouchableOpacity>
+          </View>
 
-        {/* Photo Upload Section */}
-        <View className="bg-white rounded-2xl p-6 shadow-sm mb-6">
-          <Text className="text-lg font-semibold text-gray-800 mb-4">
-            Or Upload a Photo
-          </Text>
+          {/* Upload Buttons */}
+          <View className="bg-white rounded-2xl p-4 shadow-sm mb-4">
+            <Text className="text-gray-700 font-inter-medium mb-3">Or take/upload a photo</Text>
+            <View className="flex-row space-x-3">
+              <TouchableOpacity
+                className="flex-1 bg-secondary-500 rounded-xl py-3 px-4 flex-row items-center justify-center"
+                onPress={() => uploadMealImage(true)}
+              >
+                <Camera size={20} color="white" />
+                <Text className="text-white font-inter-bold ml-2">Camera</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                className="flex-1 bg-accent-500 rounded-xl py-3 px-4 flex-row items-center justify-center"
+                onPress={() => uploadMealImage(false)}
+              >
+                <Upload size={20} color="white" />
+                <Text className="text-white font-inter-bold ml-2">Upload</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
 
-          {selectedImage ? (
-            <View className="mb-4">
+          {/* Image Preview */}
+          {selectedImage && (
+            <View className="bg-white rounded-2xl p-4 shadow-sm mb-4">
+              <Text className="text-gray-700 font-inter-medium mb-3">Selected Image</Text>
               <Image
                 source={{ uri: selectedImage }}
                 className="w-full h-48 rounded-xl"
                 resizeMode="cover"
               />
-              <TouchableOpacity
-                className="absolute top-2 right-2 bg-danger-500 rounded-full p-2"
-                onPress={() => setSelectedImage(null)}
-              >
-                <Text className="text-white font-bold">×</Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <View className="bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl p-8 items-center justify-center mb-4">
-              <Camera size={48} color="#9CA3AF" />
-              <Text className="text-gray-500 mt-2">No photo selected</Text>
             </View>
           )}
 
-          <View className="flex-row space-x-3">
-            <TouchableOpacity
-              className="flex-1 bg-gray-100 rounded-xl py-3 flex-row items-center justify-center"
-              onPress={takePicture}
-            >
-              <Camera size={20} color="#6B7280" />
-              <Text className="text-gray-700 font-medium ml-2">Camera</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              className="flex-1 bg-gray-100 rounded-xl py-3 flex-row items-center justify-center"
-              onPress={pickImageFromGallery}
-            >
-              <Upload size={20} color="#6B7280" />
-              <Text className="text-gray-700 font-medium ml-2">Gallery</Text>
-            </TouchableOpacity>
-          </View>
+          {/* Meal Preview */}
+          {mealPreview && (
+            <View className="bg-white rounded-2xl p-4 shadow-sm mb-4">
+              <Text className="text-gray-700 font-inter-medium mb-3">Meal Analysis</Text>
+              <View className="bg-primary-50 rounded-xl p-4 mb-4">
+                <Text className="text-gray-900 font-inter-medium mb-1">
+                  {mealPreview.mealText}
+                </Text>
+                <Text className="text-gray-500 font-inter text-sm mb-3">
+                  Confidence: {mealPreview.confidence?.toFixed(1) || 90}%
+                </Text>
+                <View className="flex-row justify-between">
+                  <View className="items-center">
+                    <Text className="text-lg font-bold text-primary-600">{mealPreview.calories}</Text>
+                    <Text className="text-gray-600 text-sm">Calories</Text>
+                  </View>
+                  <View className="items-center">
+                    <Text className="text-lg font-bold text-secondary-600">{mealPreview.protein}g</Text>
+                    <Text className="text-gray-600 text-sm">Protein</Text>
+                  </View>
+                  <View className="items-center">
+                    <Text className="text-lg font-bold text-accent-600">{mealPreview.carbs}g</Text>
+                    <Text className="text-gray-600 text-sm">Carbs</Text>
+                  </View>
+                  <View className="items-center">
+                    <Text className="text-lg font-bold text-red-600">{mealPreview.fats}g</Text>
+                    <Text className="text-gray-600 text-sm">Fats</Text>
+                  </View>
+                </View>
+              </View>
+            </View>
+          )}
 
-          {selectedImage && (
-            <TouchableOpacity
-              className="bg-success-500 rounded-xl py-3 mt-4 flex-row items-center justify-center"
-              onPress={analyzeMealWithPhoto}
-              disabled={analyzing}
-            >
-              <Zap size={20} color="white" />
-              <Text className="text-white font-semibold text-lg ml-2">
-                {analyzing ? 'Analyzing Photo...' : 'Analyze Photo with AI'}
-              </Text>
-            </TouchableOpacity>
+          {loading && (
+            <View className="items-center mt-4">
+              <ActivityIndicator size="large" color="#0ea5e9" />
+            </View>
           )}
         </View>
-
-        {/* Tips */}
-        <View className="bg-blue-50 rounded-2xl p-6">
-          <Text className="text-lg font-semibold text-blue-800 mb-2">
-            💡 Tips for Better Results
-          </Text>
-          <Text className="text-blue-700 text-sm leading-5">
-            • Be specific with quantities (e.g., "2 eggs" instead of "eggs"){'\n'}
-            • Include cooking methods (e.g., "grilled chicken" vs "fried chicken"){'\n'}
-            • For photos, ensure good lighting and clear view of the food{'\n'}
-            • Include all items in your meal description
-          </Text>
-        </View>
-      </View>
-    </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }

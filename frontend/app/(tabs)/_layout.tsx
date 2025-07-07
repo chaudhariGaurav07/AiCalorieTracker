@@ -1,25 +1,19 @@
 import { Tabs } from 'expo-router';
-import { Chrome as Home, Plus, TrendingUp, Settings } from 'lucide-react-native';
+import { Chrome as Home, Plus, ChartBar as BarChart3, Settings } from 'lucide-react-native';
 
 export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
+        tabBarActiveTintColor: '#0ea5e9',
+        tabBarInactiveTintColor: '#6b7280',
         tabBarStyle: {
           backgroundColor: 'white',
           borderTopWidth: 1,
-          borderTopColor: '#E5E7EB',
-          height: 84,
+          borderTopColor: '#e5e7eb',
           paddingTop: 8,
           paddingBottom: 8,
-        },
-        tabBarActiveTintColor: '#3B82F6',
-        tabBarInactiveTintColor: '#9CA3AF',
-        tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: '600',
-          marginTop: 4,
         },
       }}
     >
@@ -27,7 +21,7 @@ export default function TabLayout() {
         name="index"
         options={{
           title: 'Dashboard',
-          tabBarIcon: ({ color, size }) => (
+          tabBarIcon: ({ size, color }) => (
             <Home size={size} color={color} />
           ),
         }}
@@ -36,7 +30,7 @@ export default function TabLayout() {
         name="add-meal"
         options={{
           title: 'Add Meal',
-          tabBarIcon: ({ color, size }) => (
+          tabBarIcon: ({ size, color }) => (
             <Plus size={size} color={color} />
           ),
         }}
@@ -45,8 +39,8 @@ export default function TabLayout() {
         name="progress"
         options={{
           title: 'Progress',
-          tabBarIcon: ({ color, size }) => (
-            <TrendingUp size={size} color={color} />
+          tabBarIcon: ({ size, color }) => (
+            <BarChart3 size={size} color={color} />
           ),
         }}
       />
@@ -54,7 +48,7 @@ export default function TabLayout() {
         name="settings"
         options={{
           title: 'Settings',
-          tabBarIcon: ({ color, size }) => (
+          tabBarIcon: ({ size, color }) => (
             <Settings size={size} color={color} />
           ),
         }}

@@ -1,239 +1,262 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert, Modal } from 'react-native';
-import { useAuth } from '@/context/AuthContext';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  SafeAreaView,
+  ScrollView,
+  TextInput,
+  Alert,
+  Modal,
+} from 'react-native';
+import { useAuth } from '../../context/AuthContext';
+import { User, Lock, Mail, LogOut } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
-import { User, Lock, Mail, LogOut, Scan, CreditCard as Edit2, Save, X } from 'lucide-react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export default function SettingsScreen() {
-  const { user, logout, updateProfile, changePassword } = useAuth();
+const BASE_URL = 'https://aicalorietracker.onrender.com/api/v1';
+
+export default function Settings() {
+  const { user, logout, token } = useAuth();
   const router = useRouter();
-  const [showProfileEdit, setShowProfileEdit] = useState(false);
-  const [showPasswordChange, setShowPasswordChange] = useState(false);
-  const [profileData, setProfileData] = useState({
+  const [showEditProfile, setShowEditProfile] = useState(false);
+  const [showChangePassword, setShowChangePassword] = useState(false);
+  const [editForm, setEditForm] = useState({
     email: user?.email || '',
     username: user?.username || '',
   });
-  const [passwordData, setPasswordData] = useState({
-    oldPassword: '',
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: '',
     newPassword: '',
     confirmPassword: '',
   });
   const [loading, setLoading] = useState(false);
 
-  const handleProfileUpdate = async () => {
-    if (!profileData.email || !profileData.username) {
+  const handleEditProfile = async () => {
+    if (!editForm.email || !editForm.username) {
       Alert.alert('Error', 'Please fill in all fields');
       return;
     }
 
     setLoading(true);
     try {
-      await updateProfile(profileData.email, profileData.username);
-      Alert.alert('Success', 'Profile updated successfully');
-      setShowProfileEdit(false);
-    } catch (err) {
-      const error = err as Error;
-      Alert.alert('Error', error.message);
+      const response = await fetch(`${BASE_URL}/users/update-account`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(editForm),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        await AsyncStorage.setItem('user', JSON.stringify(data.data));
+        Alert.alert('Success', 'Profile updated successfully');
+        setShowEditProfile(false);
+      } else {
+        Alert.alert('Error', data.message || 'Failed to update profile');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Network error. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handlePasswordChange = async () => {
-    if (!passwordData.oldPassword || !passwordData.newPassword || !passwordData.confirmPassword) {
+  const handleChangePassword = async () => {
+    if (
+      !passwordForm.currentPassword ||
+      !passwordForm.newPassword ||
+      !passwordForm.confirmPassword
+    ) {
       Alert.alert('Error', 'Please fill in all fields');
       return;
     }
 
-    if (passwordData.newPassword !== passwordData.confirmPassword) {
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
       Alert.alert('Error', 'New passwords do not match');
       return;
     }
 
-    if (passwordData.newPassword.length < 6) {
-      Alert.alert('Error', 'New password must be at least 6 characters long');
+    if (passwordForm.newPassword.length < 6) {
+      Alert.alert('Error', 'Password must be at least 6 characters');
       return;
     }
 
     setLoading(true);
     try {
-      await changePassword(passwordData.oldPassword, passwordData.newPassword);
-      Alert.alert('Success', 'Password changed successfully');
-      setShowPasswordChange(false);
-      setPasswordData({ oldPassword: '', newPassword: '', confirmPassword: '' });
-    } catch (err) {
-      const error = err as Error;
-      Alert.alert('Error', error.message);
+      const response = await fetch(`${BASE_URL}/users/change-password`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          oldPassword: passwordForm.currentPassword,
+          newPassword: passwordForm.newPassword,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        Alert.alert('Success', 'Password changed successfully');
+        setShowChangePassword(false);
+        setPasswordForm({
+          currentPassword: '',
+          newPassword: '',
+          confirmPassword: '',
+        });
+      } else {
+        Alert.alert('Error', data.message || 'Failed to change password');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Network error. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleLogout = () => {
-    Alert.alert(
-      'Logout',
-      'Are you sure you want to logout?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Logout', 
-          style: 'destructive',
-          onPress: async () => {
-            await logout();
-            router.replace('/(auth)/login');
-          }
-        }
-      ]
-    );
+  const handleForgotPassword = async () => {
+    if (!user?.email) return;
+
+    try {
+      const response = await fetch(`${BASE_URL}/users/forgot-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: user.email }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        Alert.alert('Success', 'Password reset link sent to your email');
+      } else {
+        Alert.alert('Error', data.message || 'Failed to send reset link');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Network error. Please try again.');
+    }
   };
 
-  const openBarcodeScanner = () => {
-    router.push('/barcode-scanner');
+  const handleLogout = () => {
+    Alert.alert('Logout', 'Are you sure you want to logout?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Logout',
+        style: 'destructive',
+        onPress: async () => {
+          await logout();
+          router.replace('/auth/login'); // redirect to login
+        },
+      },
+    ]);
   };
 
   return (
-    <ScrollView className="flex-1 bg-gray-50">
-      <View className="px-4 pt-12 pb-6">
-        <View className="mb-6">
-          <Text className="text-2xl font-bold text-gray-800">Settings</Text>
-          <Text className="text-gray-600 mt-1">
-            Manage your account and preferences
-          </Text>
-        </View>
-
-        {/* Profile Section */}
-        <View className="bg-white rounded-2xl p-6 shadow-sm mb-6">
-          <View className="flex-row items-center justify-between mb-4">
-            <Text className="text-lg font-semibold text-gray-800">Profile</Text>
-            <User size={24} color="#3B82F6" />
-          </View>
-          
-          <View className="space-y-4">
-            <View className="flex-row items-center justify-between">
-              <View>
-                <Text className="text-sm text-gray-600">Username</Text>
-                <Text className="text-lg font-medium text-gray-800">{user?.username}</Text>
-              </View>
-              <TouchableOpacity
-                className="bg-gray-100 rounded-lg p-2"
-                onPress={() => setShowProfileEdit(true)}
-              >
-                <Edit2 size={20} color="#6B7280" />
-              </TouchableOpacity>
-            </View>
-            
-            <View className="flex-row items-center justify-between">
-              <View>
-                <Text className="text-sm text-gray-600">Email</Text>
-                <Text className="text-lg font-medium text-gray-800">{user?.email}</Text>
-              </View>
-            </View>
-          </View>
-        </View>
-
-        {/* Security Section */}
-        <View className="bg-white rounded-2xl p-6 shadow-sm mb-6">
-          <View className="flex-row items-center justify-between mb-4">
-            <Text className="text-lg font-semibold text-gray-800">Security</Text>
-            <Lock size={24} color="#3B82F6" />
-          </View>
-          
-          <TouchableOpacity
-            className="flex-row items-center justify-between py-3 border-b border-gray-100"
-            onPress={() => setShowPasswordChange(true)}
-          >
-            <View>
-              <Text className="font-medium text-gray-800">Change Password</Text>
-              <Text className="text-sm text-gray-600">Update your account password</Text>
-            </View>
-            <Lock size={20} color="#6B7280" />
-          </TouchableOpacity>
-          
-          <TouchableOpacity
-            className="flex-row items-center justify-between py-3"
-            onPress={() => router.push('/(auth)/forgot-password')}
-          >
-            <View>
-              <Text className="font-medium text-gray-800">Forgot Password</Text>
-              <Text className="text-sm text-gray-600">Reset your password via email</Text>
-            </View>
-            <Mail size={20} color="#6B7280" />
-          </TouchableOpacity>
-        </View>
-
-        {/* Tools Section */}
-        <View className="bg-white rounded-2xl p-6 shadow-sm mb-6">
-          <View className="flex-row items-center justify-between mb-4">
-            <Text className="text-lg font-semibold text-gray-800">Tools</Text>
-            <Scan size={24} color="#3B82F6" />
-          </View>
-          
-          <TouchableOpacity
-            className="flex-row items-center justify-between py-3"
-            onPress={openBarcodeScanner}
-          >
-            <View>
-              <Text className="font-medium text-gray-800">Barcode Scanner</Text>
-              <Text className="text-sm text-gray-600">Scan product barcodes for quick entry</Text>
-            </View>
-            <Scan size={20} color="#6B7280" />
-          </TouchableOpacity>
-        </View>
-
-        {/* Logout */}
-        <TouchableOpacity
-          className="bg-danger-500 rounded-2xl p-4 flex-row items-center justify-center"
-          onPress={handleLogout}
-        >
-          <LogOut size={24} color="white" />
-          <Text className="text-white font-semibold text-lg ml-2">Logout</Text>
-        </TouchableOpacity>
+    <SafeAreaView className="flex-1 bg-gray-50">
+      <View className="px-6 py-4 bg-white">
+        <Text className="text-2xl font-inter-bold text-gray-900">Settings</Text>
+        <Text className="text-gray-600 font-inter mt-1">
+          Manage your account and preferences
+        </Text>
       </View>
 
-      {/* Profile Edit Modal */}
-      <Modal
-        visible={showProfileEdit}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setShowProfileEdit(false)}
-      >
+      <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+        <View className="bg-white mx-6 mt-4 rounded-2xl p-6 shadow-sm">
+          <View className="items-center mb-6">
+            <View className="bg-primary-100 rounded-full w-20 h-20 items-center justify-center mb-3">
+              <User size={32} color="#0ea5e9" />
+            </View>
+            <Text className="text-xl font-inter-bold text-gray-900">{user?.username}</Text>
+            <Text className="text-gray-600 font-inter">{user?.email}</Text>
+          </View>
+        </View>
+
+        <View className="bg-white mx-6 mt-4 rounded-2xl p-4 shadow-sm">
+          <Text className="text-lg font-inter-bold text-gray-900 mb-4">
+            Account Settings
+          </Text>
+
+          <TouchableOpacity
+            className="flex-row items-center py-3 px-2 border-b border-gray-100"
+            onPress={() => setShowEditProfile(true)}
+          >
+            <View className="bg-secondary-100 rounded-lg p-2 mr-3">
+              <User size={20} color="#10b981" />
+            </View>
+            <Text className="flex-1 text-gray-900 font-inter">Edit Profile</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            className="flex-row items-center py-3 px-2 border-b border-gray-100"
+            onPress={() => setShowChangePassword(true)}
+          >
+            <View className="bg-accent-100 rounded-lg p-2 mr-3">
+              <Lock size={20} color="#f59e0b" />
+            </View>
+            <Text className="flex-1 text-gray-900 font-inter">Change Password</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            className="flex-row items-center py-3 px-2 border-b border-gray-100"
+            onPress={handleForgotPassword}
+          >
+            <View className="bg-blue-100 rounded-lg p-2 mr-3">
+              <Mail size={20} color="#3b82f6" />
+            </View>
+            <Text className="flex-1 text-gray-900 font-inter">Forgot Password</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            className="flex-row items-center py-3 px-2"
+            onPress={handleLogout}
+          >
+            <View className="bg-red-100 rounded-lg p-2 mr-3">
+              <LogOut size={20} color="#ef4444" />
+            </View>
+            <Text className="flex-1 text-red-600 font-inter">Logout</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View className="h-6" />
+      </ScrollView>
+
+      {/* Profile Modal */}
+      <Modal visible={showEditProfile} animationType="slide" transparent>
         <View className="flex-1 justify-center items-center bg-black/50">
           <View className="bg-white rounded-2xl p-6 mx-6 w-full max-w-sm">
-            <View className="flex-row items-center justify-between mb-4">
-              <Text className="text-lg font-semibold text-gray-800">Edit Profile</Text>
-              <TouchableOpacity onPress={() => setShowProfileEdit(false)}>
-                <X size={24} color="#6B7280" />
-              </TouchableOpacity>
-            </View>
-            
-            <View className="space-y-4">
-              <View>
-                <Text className="text-gray-700 font-medium mb-2">Username</Text>
-                <TextInput
-                  className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-800"
-                  value={profileData.username}
-                  onChangeText={(text) => setProfileData({...profileData, username: text})}
-                />
-              </View>
-              
-              <View>
-                <Text className="text-gray-700 font-medium mb-2">Email</Text>
-                <TextInput
-                  className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-800"
-                  value={profileData.email}
-                  onChangeText={(text) => setProfileData({...profileData, email: text})}
-                  keyboardType="email-address"
-                />
-              </View>
-              
+            <Text className="text-xl font-inter-bold mb-4 text-gray-900">Edit Profile</Text>
+            <TextInput
+              className="bg-gray-100 rounded-xl px-4 py-3 mb-3 text-gray-800"
+              placeholder="Email"
+              value={editForm.email}
+              onChangeText={(text) => setEditForm({ ...editForm, email: text })}
+            />
+            <TextInput
+              className="bg-gray-100 rounded-xl px-4 py-3 mb-6 text-gray-800"
+              placeholder="Username"
+              value={editForm.username}
+              onChangeText={(text) => setEditForm({ ...editForm, username: text })}
+            />
+            <View className="flex-row space-x-3">
               <TouchableOpacity
-                className="bg-primary-500 rounded-xl py-3 flex-row items-center justify-center"
-                onPress={handleProfileUpdate}
+                className="flex-1 bg-gray-500 rounded-xl py-3 items-center"
+                onPress={() => setShowEditProfile(false)}
+              >
+                <Text className="text-white font-inter-bold">Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                className={`flex-1 bg-primary-500 rounded-xl py-3 items-center ${
+                  loading ? 'opacity-50' : ''
+                }`}
+                onPress={handleEditProfile}
                 disabled={loading}
               >
-                <Save size={20} color="white" />
-                <Text className="text-white font-semibold ml-2">
-                  {loading ? 'Saving...' : 'Save Changes'}
+                <Text className="text-white font-inter-bold">
+                  {loading ? 'Saving...' : 'Save'}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -241,67 +264,54 @@ export default function SettingsScreen() {
         </View>
       </Modal>
 
-      {/* Password Change Modal */}
-      <Modal
-        visible={showPasswordChange}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setShowPasswordChange(false)}
-      >
+      {/* Password Modal */}
+      <Modal visible={showChangePassword} animationType="slide" transparent>
         <View className="flex-1 justify-center items-center bg-black/50">
           <View className="bg-white rounded-2xl p-6 mx-6 w-full max-w-sm">
-            <View className="flex-row items-center justify-between mb-4">
-              <Text className="text-lg font-semibold text-gray-800">Change Password</Text>
-              <TouchableOpacity onPress={() => setShowPasswordChange(false)}>
-                <X size={24} color="#6B7280" />
-              </TouchableOpacity>
-            </View>
-            
-            <View className="space-y-4">
-              <View>
-                <Text className="text-gray-700 font-medium mb-2">Current Password</Text>
-                <TextInput
-                  className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-800"
-                  value={passwordData.oldPassword}
-                  onChangeText={(text) => setPasswordData({...passwordData, oldPassword: text})}
-                  secureTextEntry
-                />
-              </View>
-              
-              <View>
-                <Text className="text-gray-700 font-medium mb-2">New Password</Text>
-                <TextInput
-                  className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-800"
-                  value={passwordData.newPassword}
-                  onChangeText={(text) => setPasswordData({...passwordData, newPassword: text})}
-                  secureTextEntry
-                />
-              </View>
-              
-              <View>
-                <Text className="text-gray-700 font-medium mb-2">Confirm New Password</Text>
-                <TextInput
-                  className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-800"
-                  value={passwordData.confirmPassword}
-                  onChangeText={(text) => setPasswordData({...passwordData, confirmPassword: text})}
-                  secureTextEntry
-                />
-              </View>
-              
+            <Text className="text-xl font-inter-bold mb-4 text-gray-900">Change Password</Text>
+            <TextInput
+              className="bg-gray-100 rounded-xl px-4 py-3 mb-3 text-gray-800"
+              placeholder="Current Password"
+              secureTextEntry
+              value={passwordForm.currentPassword}
+              onChangeText={(text) => setPasswordForm({ ...passwordForm, currentPassword: text })}
+            />
+            <TextInput
+              className="bg-gray-100 rounded-xl px-4 py-3 mb-3 text-gray-800"
+              placeholder="New Password"
+              secureTextEntry
+              value={passwordForm.newPassword}
+              onChangeText={(text) => setPasswordForm({ ...passwordForm, newPassword: text })}
+            />
+            <TextInput
+              className="bg-gray-100 rounded-xl px-4 py-3 mb-6 text-gray-800"
+              placeholder="Confirm New Password"
+              secureTextEntry
+              value={passwordForm.confirmPassword}
+              onChangeText={(text) => setPasswordForm({ ...passwordForm, confirmPassword: text })}
+            />
+            <View className="flex-row space-x-3">
               <TouchableOpacity
-                className="bg-primary-500 rounded-xl py-3 flex-row items-center justify-center"
-                onPress={handlePasswordChange}
+                className="flex-1 bg-gray-500 rounded-xl py-3 items-center"
+                onPress={() => setShowChangePassword(false)}
+              >
+                <Text className="text-white font-inter-bold">Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                className={`flex-1 bg-primary-500 rounded-xl py-3 items-center ${
+                  loading ? 'opacity-50' : ''
+                }`}
+                onPress={handleChangePassword}
                 disabled={loading}
               >
-                <Save size={20} color="white" />
-                <Text className="text-white font-semibold ml-2">
-                  {loading ? 'Changing...' : 'Change Password'}
+                <Text className="text-white font-inter-bold">
+                  {loading ? 'Changing...' : 'Change'}
                 </Text>
               </TouchableOpacity>
             </View>
           </View>
         </View>
       </Modal>
-    </ScrollView>
+    </SafeAreaView>
   );
 }
