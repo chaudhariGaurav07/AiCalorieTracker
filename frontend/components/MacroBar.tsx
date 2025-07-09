@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text } from 'react-native';
+import React from "react";
+import { View, Text } from "react-native";
 
 interface MacroBarProps {
   label: string;
@@ -14,7 +14,7 @@ export default function MacroBar({
   current,
   goal,
   color,
-  unit = 'g',
+  unit = "g",
 }: MacroBarProps) {
   const safeGoal = goal > 0 ? goal : 1; // prevent division by zero
   const percentage = Math.min((current / safeGoal) * 100, 100);
@@ -24,8 +24,8 @@ export default function MacroBar({
       <View className="flex-row justify-between items-center mb-2">
         <Text className="text-gray-700 font-inter-medium">{label}</Text>
         <Text className="text-gray-600 font-inter">
-          {current}
-          {unit} / {goal}
+          {current.toFixed(1)}
+          {unit} / {goal.toFixed(0)}
           {unit}
         </Text>
       </View>
