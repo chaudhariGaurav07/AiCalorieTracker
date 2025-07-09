@@ -14,7 +14,6 @@ export const getTodayLog = asyncHandler(async (req, res) => {
   const today = new Date().toISOString().split("T")[0]; // "YYYY-MM-DD"
 
   const dailyLog = await DailyLog.findOne({ user: userId, date: today });
-
   const calorieGoal = await CalorieGoal.findOne({ user: userId });
 
   return res.status(200).json(
@@ -28,7 +27,9 @@ export const getTodayLog = asyncHandler(async (req, res) => {
           carbs: 0,
           fats: 0,
         },
-        calorieGoal,
+        calorieGoal: calorieGoal || null,
+        stepCount: dailyLog?.stepCount || 0,           // ✅ Add this
+        burnedCalories: dailyLog?.burnedCalories || 0, // ✅ And this
       },
       "Today's log fetched successfully"
     )
