@@ -17,10 +17,11 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login, hasGoal } = useAuth(); // ✅ include hasGoal
-  const router = useRouter();
+  const { login, hasGoal } = useAuth();
+ 
 
   const handleLogin = async () => {
+    const router = useRouter();
     if (!email || !password) {
       Alert.alert('Error', 'Please fill in all fields');
       return;

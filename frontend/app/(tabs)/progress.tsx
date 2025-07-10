@@ -48,40 +48,78 @@ export default function Progress() {
       const response = await fetch(`${BASE_URL}/logs/history`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-
+  
       const json = await response.json();
-
-      if (response.ok && json.data) {
-        setProgressData(json.data);
+  
+      if (response.ok && json.data?.history) {
+        const history = json.data.history;
+  
+        // Sort entries by date
+        const sorted = [...history].sort(
+          (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+        );
+  
+        // Weekly
+        const weeklyLabels = sorted.map((entry) =>
+          new Date(entry.date).toLocaleDateString('en-US', { weekday: 'short' })
+        );
+        const weeklyCalories = sorted.map((entry) => entry.totals.calories || 0);
+        const weeklyProtein = sorted.map((entry) => entry.totals.protein || 0);
+        const weeklyCarbs = sorted.map((entry) => entry.totals.carbs || 0);
+        const weeklyFats = sorted.map((entry) => entry.totals.fats || 0);
+  
+        // Monthly: group every 7 entries = 1 week
+        const chunkBy = 7;
+        const chunkedCalories = [];
+        const monthlyLabels = [];
+  
+        for (let i = 0; i < sorted.length; i += chunkBy) {
+          const chunk = sorted.slice(i, i + chunkBy);
+          const avg = (arr: number[]) =>
+            arr.length ? arr.reduce((sum, v) => sum + v, 0) / arr.length : 0;
+  
+          chunkedCalories.push(
+            avg(chunk.map((entry) => entry.totals.calories || 0))
+          );
+  
+          monthlyLabels.push(`Week ${Math.floor(i / chunkBy) + 1}`);
+        }
+  
+        const avg = (arr: number[]) =>
+          arr.length ? arr.reduce((sum, v) => sum + v, 0) / arr.length : 0;
+  
+        const transformedData: ProgressData = {
+          weekly: {
+            calories: weeklyCalories,
+            weight: [],
+            labels: weeklyLabels,
+          },
+          monthly: {
+            calories: chunkedCalories,
+            weight: [],
+            labels: monthlyLabels,
+          },
+          averages: {
+            calories: Number(avg(weeklyCalories).toFixed(2)),
+            protein: Number(avg(weeklyProtein).toFixed(1)),
+            carbs: Number(avg(weeklyCarbs).toFixed(1)),
+            fats: Number(avg(weeklyFats).toFixed(1)),
+          },
+        };
+  
+        setProgressData(transformedData);
       } else {
         throw new Error(json.message || 'Failed to fetch data');
       }
     } catch (error: any) {
       console.error('Progress fetch error:', error);
       Alert.alert('Error', error.message || 'Could not load progress data.');
-      // Optional fallback
-      setProgressData({
-        weekly: {
-          calories: [1850, 2100, 1950, 2200, 1900, 2050, 1980],
-          weight: [75.2, 75.1, 75.3, 75.0, 74.9, 74.8, 74.7],
-          labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-        },
-        monthly: {
-          calories: [1920, 1980, 2050, 1890],
-          weight: [76.5, 75.8, 75.2, 74.7],
-          labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
-        },
-        averages: {
-          calories: 1975,
-          protein: 142,
-          carbs: 198,
-          fats: 58,
-        },
-      });
+      setProgressData(null);
     } finally {
       setLoading(false);
     }
   };
+  
 
   const currentData = progressData?.[timeframe];
 
