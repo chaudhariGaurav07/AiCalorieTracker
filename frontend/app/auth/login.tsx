@@ -22,17 +22,17 @@ export default function Login() {
 
   const handleLogin = async () => {
     const router = useRouter();
+  
     if (!email || !password) {
       Alert.alert('Error', 'Please fill in all fields');
       return;
     }
-
+  
     setLoading(true);
     try {
-      await login(email, password);
-
-      // ✅ Navigate based on goal
-      if (!hasGoal) {
+      const goalStatus = await login(email, password); // ← returns goalStatus directly
+  
+      if (!goalStatus) {
         router.replace('/set-goal');
       } else {
         router.replace('/(tabs)');
@@ -44,6 +44,7 @@ export default function Login() {
       setLoading(false);
     }
   };
+  
 
   return (
     <SafeAreaView className="flex-1 bg-gradient-to-br from-primary-50 to-secondary-50">

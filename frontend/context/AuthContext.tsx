@@ -20,7 +20,7 @@ interface AuthContextType {
   user: User | null;
   token: string | null;
   hasGoal: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<boolean>; 
   register: (
     email: string,
     username: string,
@@ -28,9 +28,10 @@ interface AuthContextType {
   ) => Promise<void>;
   logout: () => Promise<void>;
   setGoal: (goal: GoalInput) => Promise<void>;
-  checkGoal: () => Promise<void>;
+  checkGoal: () => Promise<boolean>; // Optional fix to match usage
   loading: boolean;
 }
+
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -77,20 +78,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
     });
-
+  
     const data = await res.json();
     if (!res.ok) throw new Error(data.message || "Login failed");
-
+  
     const { accessToken, user: userData } = data.data;
-
+  
     setToken(accessToken);
     setUser(userData);
-
+  
     await AsyncStorage.setItem("auth_token", accessToken);
     await AsyncStorage.setItem("user", JSON.stringify(userData));
-
-    await checkGoal(accessToken);
+  
+    const goalStatus = await checkGoal(accessToken); // ← await and return boolean
+    return goalStatus;
   };
+  
 
   const register = async (
     email: string,
@@ -120,21 +123,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const logout = async () => {
     try {
       await fetch(`${API_BASE}/logout`, {
-        method: 'POST',
+        method: "POST",
         headers: { Authorization: `Bearer ${token}` },
       });
     } catch (error) {
-      console.warn('Logout request failed. Clearing local data anyway.');
+      console.warn("Logout request failed. Clearing local data anyway.");
     } finally {
       setUser(null);
       setToken(null);
       setHasGoal(false);
-      await AsyncStorage.multiRemove(['auth_token', 'user', 'has_goal']);
-
+      await AsyncStorage.multiRemove([
+        "auth_token",
+        "user",
+        "has_goal",
+        "goal_prompted_once", // ❌ clear this too
+      ]);
     }
   };
-  
-  
 
   const setGoal = async (goal: GoalInput) => {
     const res = await fetch(`${GOAL_API}/set`, {
@@ -151,28 +156,30 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     setHasGoal(true);
     await AsyncStorage.setItem("has_goal", "true");
+    await AsyncStorage.setItem("goal_prompted_once", "true"); // ✅ mark as prompted
   };
 
-  const checkGoal = async (accessToken?: string) => {
+  const checkGoal = async (accessToken?: string): Promise<boolean> => {
     try {
       const authToken = accessToken || token;
       const res = await fetch(`${GOAL_API}/get`, {
-        headers: {
-          Authorization: `Bearer ${authToken}`,
-        },
+        headers: { Authorization: `Bearer ${authToken}` },
       });
-
+  
       const data = await res.json();
-      if (!res.ok || !data?.data?.targetCalories)
-        throw new Error("Goal not set");
-
-      setHasGoal(true);
-      await AsyncStorage.setItem("has_goal", "true");
-    } catch (err) {
+      const goalExists = res.ok && !!data?.data?.targetCalories;
+  
+      setHasGoal(goalExists);
+      await AsyncStorage.setItem("has_goal", goalExists ? "true" : "false");
+  
+      return goalExists;
+    } catch {
       setHasGoal(false);
       await AsyncStorage.setItem("has_goal", "false");
+      return false;
     }
   };
+  
 
   return (
     <AuthContext.Provider
