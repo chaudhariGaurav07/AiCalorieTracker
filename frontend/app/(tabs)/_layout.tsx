@@ -6,12 +6,12 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#0ea5e9',
-        tabBarInactiveTintColor: '#6b7280',
+        tabBarActiveTintColor: '#00cc88',       // pastel green for active
+        tabBarInactiveTintColor: '#9da5ab',     // soft gray-blue
         tabBarStyle: {
-          backgroundColor: 'white',
+          backgroundColor: '#f8fafa',           // very light pastel base
           borderTopWidth: 1,
-          borderTopColor: '#e5e7eb',
+          borderTopColor: '#d0d8e0',            // subtle border
           paddingTop: 8,
           paddingBottom: 8,
         },

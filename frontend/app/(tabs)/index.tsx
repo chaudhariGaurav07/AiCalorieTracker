@@ -1,3 +1,4 @@
+// Dashboard.tsx
 import React, { useState, useEffect } from "react";
 import {
   View,
@@ -58,9 +59,7 @@ export default function Dashboard() {
   const fetchTodayData = async () => {
     try {
       const response = await fetch(`${BASE_URL}/logs/todays-log`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
 
       const res = await response.json();
@@ -128,9 +127,7 @@ export default function Dashboard() {
   }, []);
 
   useEffect(() => {
-    if (steps > 0) {
-      syncStepsToBackend(steps);
-    }
+    if (steps > 0) syncStepsToBackend(steps);
   }, [steps]);
 
   const onRefresh = () => {
@@ -140,9 +137,9 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <SafeAreaView className="flex-1 bg-gray-50">
+      <SafeAreaView className="flex-1 bg-[#eaf4fb]">
         <View className="flex-1 justify-center items-center">
-          <Text className="text-gray-600 font-inter">Loading...</Text>
+          <Text className="text-[#7a7a7a] font-inter">Loading...</Text>
         </View>
       </SafeAreaView>
     );
@@ -150,9 +147,9 @@ export default function Dashboard() {
 
   if (!todayData) {
     return (
-      <SafeAreaView className="flex-1 bg-gray-50">
+      <SafeAreaView className="flex-1 bg-[#eaf4fb]">
         <View className="flex-1 justify-center items-center">
-          <Text className="text-gray-600 font-inter">No data available</Text>
+          <Text className="text-[#7a7a7a] font-inter">No data available</Text>
         </View>
       </SafeAreaView>
     );
@@ -165,22 +162,22 @@ export default function Dashboard() {
   const netCalories = consumed.calories - burned;
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50">
-      <View className="flex-row justify-between items-center px-6 py-12 bg-white">
+    <SafeAreaView className="flex-1 bg-[#eaf4fb]">
+      <View className="flex-row justify-between items-center px-6 py-12 bg-[#ffffff]">
         <View className="flex-1 pr-3">
-          <Text className="text-2xl font-inter-bold text-gray-900 leading-tight">
+          <Text className="text-2xl font-inter-bold text-[#2e2e2e] leading-tight">
             Hello, {user?.username}!
           </Text>
-          <Text className="text-base font-inter text-gray-600 mt-1 leading-snug">
+          <Text className="text-base font-inter text-[#7a7a7a] mt-1 leading-snug">
             Let's track your nutrition today
           </Text>
         </View>
 
         <TouchableOpacity
-          className="bg-primary-500 rounded-full p-3"
+          className="bg-[#00cc88] rounded-full p-3"
           onPress={() => setShowScanner(true)}
         >
-          <Scan size={24} color="red" />
+          <Scan size={24} color="#ffffff" />
         </TouchableOpacity>
       </View>
 
@@ -192,60 +189,60 @@ export default function Dashboard() {
         }
       >
         {/* Summary */}
-        <View className="bg-white mx-6 mt-4 rounded-2xl p-6 shadow-sm">
+        <View className="bg-[#ffffff] mx-6 mt-4 rounded-2xl p-6 shadow-md shadow-[#d3dce6]">
           <View className="items-center mb-6">
             <CircularProgress
               size={120}
               strokeWidth={8}
               progress={caloriesProgress}
-              color="#0ea5e9"
+              color="#00cc88"
             >
-              <Text className="text-2xl font-inter-bold text-gray-900">
+              <Text className="text-2xl font-inter-bold text-[#2e2e2e]">
                 {Number(consumed.calories).toFixed(2)}
               </Text>
-              <Text className="text-gray-600 font-inter">kcal</Text>
+              <Text className="text-[#7a7a7a] font-inter">kcal</Text>
             </CircularProgress>
           </View>
 
           <View className="flex-row justify-between">
             <View className="items-center">
-              <Text className="text-lg font-inter-bold text-primary-600">
+              <Text className="text-lg font-inter-bold text-[#00cc88]">
                 {goal.calories} kcal
               </Text>
-              <Text className="text-gray-600 font-inter text-sm">Goal</Text>
+              <Text className="text-[#7a7a7a] font-inter text-sm">Goal</Text>
             </View>
             <View className="items-center">
-              <Text className="text-lg font-inter-bold text-secondary-600">
+              <Text className="text-lg font-inter-bold text-[#0097e6]">
                 {burned.toFixed(2)} kcal
               </Text>
-              <Text className="text-gray-600 font-inter text-sm">Burned</Text>
+              <Text className="text-[#7a7a7a] font-inter text-sm">Burned</Text>
             </View>
             <View className="items-center">
-              <Text className="text-lg font-inter-bold text-gray-900">
+              <Text className="text-lg font-inter-bold text-[#2e2e2e]">
                 {netCalories.toFixed(2)} kcal
               </Text>
-              <Text className="text-gray-600 font-inter text-sm">Net</Text>
+              <Text className="text-[#7a7a7a] font-inter text-sm">Net</Text>
             </View>
           </View>
         </View>
 
         {/* Macronutrients */}
-        <View className="bg-white mx-6 mt-4 rounded-2xl p-6 shadow-sm">
-          <Text className="text-lg font-inter-bold text-gray-900 mb-4">
+        <View className="bg-[#ffffff] mx-6 mt-4 rounded-2xl p-6 shadow-md shadow-[#d3dce6]">
+          <Text className="text-lg font-inter-bold text-[#2e2e2e] mb-4">
             Macronutrients
           </Text>
           <MacroBar
             label="Protein"
             current={consumed.protein}
             goal={goal.protein}
-            color="#10b981"
+            color="#3aae68"
             unit="g"
           />
           <MacroBar
             label="Carbs"
             current={consumed.carbs}
             goal={goal.carbs}
-            color="#f59e0b"
+            color="#0097e6"
             unit="g"
           />
           <MacroBar
@@ -258,41 +255,41 @@ export default function Dashboard() {
         </View>
 
         {/* Activity */}
-        <View className="bg-white mx-6 mt-4 rounded-2xl p-6 shadow-sm">
-          <Text className="text-lg font-inter-bold text-gray-900 mb-4">
+        <View className="bg-[#ffffff] mx-6 mt-4 rounded-2xl p-6 shadow-md shadow-[#d3dce6]">
+          <Text className="text-lg font-inter-bold text-[#2e2e2e] mb-4">
             Today's Activity
           </Text>
           <View className="flex-row justify-between">
             <View className="items-center">
-              <View className="bg-secondary-100 rounded-full p-3 mb-2">
-                <Footprints size={24} color="#10b981" />
+              <View className=" rounded-full p-3 mb-2">
+                <Footprints size={24} color="#3aae68" />
               </View>
-              <Text className="text-xl font-inter-bold text-gray-900">
+              <Text className="text-xl font-inter-bold text-[#2e2e2e]">
                 {serverSteps.toLocaleString()}
               </Text>
-              <Text className="text-gray-600 font-inter text-sm">Steps</Text>
+              <Text className="text-[#7a7a7a] font-inter text-sm">Steps</Text>
             </View>
             <View className="items-center">
-              <View className="bg-accent-100 rounded-full p-3 mb-2">
+              <View className=" rounded-full p-3 mb-2">
                 <Flame size={24} color="#f59e0b" />
               </View>
-              <Text className="text-xl font-inter-bold text-gray-900">
+              <Text className="text-xl font-inter-bold text-[#2e2e2e]">
                 {burned.toFixed(2)} kcal
               </Text>
-              <Text className="text-gray-600 font-inter text-sm">Calories</Text>
+              <Text className="text-[#7a7a7a] font-inter text-sm">Calories</Text>
             </View>
           </View>
         </View>
 
         {/* Meals */}
-        <View className="bg-white mx-6 mt-4 rounded-2xl p-6 shadow-sm">
-          <Text className="text-lg font-inter-bold text-gray-900 mb-4">
+        <View className="bg-[#ffffff] mx-6 mt-4 rounded-2xl p-6 shadow-md shadow-[#d3dce6]">
+          <Text className="text-lg font-inter-bold text-[#2e2e2e] mb-4">
             Recent Meals
           </Text>
           {recentMeals.length > 0 ? (
             recentMeals.map((meal) => <MealCard key={meal.id} {...meal} />)
           ) : (
-            <Text className="text-center text-gray-500 font-inter">
+            <Text className="text-center text-[#999] font-inter">
               No meals logged today
             </Text>
           )}

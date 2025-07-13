@@ -1,6 +1,6 @@
-import React from 'react';
-import { View, Text, Image, TouchableOpacity } from 'react-native';
-import { Clock } from 'lucide-react-native';
+import React from "react";
+import { View, Text, Image, TouchableOpacity } from "react-native";
+import { Clock } from "lucide-react-native";
 
 interface MealCardProps {
   mealText: string;
@@ -25,7 +25,7 @@ export default function MealCard({
 }: MealCardProps) {
   return (
     <TouchableOpacity
-      className="bg-white rounded-xl p-4 shadow-sm mb-3 border border-gray-100 active:opacity-80"
+      className="bg-[#ffffff] rounded-xl p-4 mb-3 border border-[#eaf4fb] shadow-sm active:opacity-80"
       onPress={onPress}
       activeOpacity={0.9}
     >
@@ -37,31 +37,31 @@ export default function MealCard({
             resizeMode="cover"
           />
         ) : (
-          <View className="w-16 h-16 rounded-lg mr-3 bg-gray-100" />
+          <View className="w-16 h-16 rounded-lg mr-3 bg-[#d8e6f4]" />
         )}
 
         <View className="flex-1">
           <Text
-            className="text-gray-900 font-inter-medium mb-1"
+            className="text-[#2e2e2e] font-inter-medium mb-1"
             numberOfLines={2}
           >
             {mealText}
           </Text>
 
           <View className="flex-row items-center mb-2">
-            <Clock size={12} color="#6b7280" />
-            <Text className="text-gray-500 font-inter text-sm ml-1">
+            <Clock size={12} color="#7a7a7a" />
+            <Text className="text-[#7a7a7a] font-inter text-sm ml-1">
               {timestamp}
             </Text>
           </View>
 
           <View className="flex-row flex-wrap gap-x-4 gap-y-1">
-            <Text className="text-primary-600 font-inter-medium text-sm">
+            <Text className="text-[#00cc88] font-inter-medium text-sm">
               {calories} cal
             </Text>
-            <Text className="text-gray-600 font-inter text-sm">P: {protein}g</Text>
-            <Text className="text-gray-600 font-inter text-sm">C: {carbs}g</Text>
-            <Text className="text-gray-600 font-inter text-sm">F: {fats}g</Text>
+            <Text className="text-[#7a7a7a] font-inter text-sm">P: {protein}g</Text>
+            <Text className="text-[#7a7a7a] font-inter text-sm">C: {carbs}g</Text>
+            <Text className="text-[#7a7a7a] font-inter text-sm">F: {fats}g</Text>
           </View>
         </View>
       </View>

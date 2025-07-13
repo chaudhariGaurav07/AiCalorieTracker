@@ -1,5 +1,5 @@
-import { OPENROUTER_API_KEY } from '@env';
-import React, { useState, useEffect, useRef } from 'react';
+import { OPENROUTER_API_KEY } from "@env";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -8,9 +8,9 @@ import {
   Modal,
   Platform,
   ActivityIndicator,
-} from 'react-native';
-import { CameraView, useCameraPermissions } from 'expo-camera';
-import { X } from 'lucide-react-native';
+} from "react-native";
+import { CameraView, useCameraPermissions } from "expo-camera";
+import { X } from "lucide-react-native";
 
 interface BarcodeScannerProps {
   visible: boolean;
@@ -47,7 +47,9 @@ export default function BarcodeScanner({
     brand?: string,
     category?: string
   ): Promise<Nutrition | null> => {
-    const context = `${productName}${brand ? ` by ${brand}` : ''}${category ? `, which is a type of ${category}` : ''}`;
+    const context = `${productName}${brand ? ` by ${brand}` : ""}${
+      category ? `, which is a type of ${category}` : ""
+    }`;
 
     // Check cache first
     if (cache.current[context]) {
@@ -58,33 +60,33 @@ export default function BarcodeScanner({
     const prompt = `Give calories, protein, carbs, and fat for a food product named "${context}". Return ONLY a valid JSON like: {"calories": 120, "protein": 10, "carbs": 15, "fat": 5}`;
 
     try {
-      const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-        method: 'POST',
+      const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
         headers: {
           Authorization: `Bearer ${OPENROUTER_API_KEY}`,
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: 'openai/gpt-4o-mini',
+          model: "openai/gpt-4o-mini",
           temperature: 0, // make deterministic
-          messages: [{ role: 'user', content: prompt }],
+          messages: [{ role: "user", content: prompt }],
         }),
       });
 
-      if (!res.ok) throw new Error('OpenRouter API failed');
+      if (!res.ok) throw new Error("OpenRouter API failed");
       const json = await res.json();
       const text = json.choices?.[0]?.message?.content;
 
       console.log("GPT Response Text:", text);
 
-      const cleaned = text?.replace(/```json|```/g, '').trim();
+      const cleaned = text?.replace(/```json|```/g, "").trim();
       const parsed = JSON.parse(cleaned);
 
       // Store in cache
       cache.current[context] = parsed;
       return parsed;
     } catch (err) {
-      console.error('AI fetch or parse failed:', err);
+      console.error("AI fetch or parse failed:", err);
       return null;
     }
   };
@@ -96,8 +98,10 @@ export default function BarcodeScanner({
     onScan?.(data);
 
     try {
-      const response = await fetch(`https://world.openfoodfacts.org/api/v0/product/${data}.json`);
-      if (!response.ok) throw new Error('Failed to fetch OpenFoodFacts');
+      const response = await fetch(
+        `https://world.openfoodfacts.org/api/v0/product/${data}.json`
+      );
+      if (!response.ok) throw new Error("Failed to fetch OpenFoodFacts");
 
       const result = await response.json();
       const product = result.product || {};
@@ -106,9 +110,18 @@ export default function BarcodeScanner({
       const category = product.categories_tags?.[0] || "";
 
       // Filter non-edible products
-      const nonEdibleKeywords = ["diaper", "soap", "detergent", "shampoo", "cleaner", "toothpaste"];
+      const nonEdibleKeywords = [
+        "diaper",
+        "soap",
+        "detergent",
+        "shampoo",
+        "cleaner",
+        "toothpaste",
+      ];
       const lowerName = productName.toLowerCase();
-      const isNonEdible = nonEdibleKeywords.some(word => lowerName.includes(word));
+      const isNonEdible = nonEdibleKeywords.some((word) =>
+        lowerName.includes(word)
+      );
 
       if (isNonEdible) {
         Alert.alert("Not Edible", `${productName} is not a food item.`);
@@ -118,7 +131,8 @@ export default function BarcodeScanner({
       const nutriments = product.nutriments || {};
       const kcal = nutriments.energy_kcal || nutriments.energy_100g || null;
       const protein = nutriments.proteins || nutriments.protein_100g || null;
-      const carbs = nutriments.carbohydrates || nutriments.carbohydrates_100g || null;
+      const carbs =
+        nutriments.carbohydrates || nutriments.carbohydrates_100g || null;
       const fat = nutriments.fat || nutriments.fat_100g || null;
 
       const hasNutrition = kcal && protein && carbs && fat;
@@ -127,18 +141,25 @@ export default function BarcodeScanner({
         Alert.alert(
           "Nutrition Facts",
           `Product: ${productName}\n\nCalories: ${kcal} kcal\nProtein: ${protein} g\nCarbs: ${carbs} g\nFat: ${fat} g`,
-          [{ text: 'OK', onPress: onClose }]
+          [{ text: "OK", onPress: onClose }]
         );
       } else {
-        const aiData = await fetchNutritionFromGPT(productName, brand, category);
+        const aiData = await fetchNutritionFromGPT(
+          productName,
+          brand,
+          category
+        );
         if (aiData) {
           Alert.alert(
             "Estimated Nutrition (AI)",
             `Product: ${productName}\n\nCalories: ${aiData.calories} kcal\nProtein: ${aiData.protein} g\nCarbs: ${aiData.carbs} g\nFat: ${aiData.fat} g`,
-            [{ text: 'OK', onPress: onClose }]
+            [{ text: "OK", onPress: onClose }]
           );
         } else {
-          Alert.alert("Not Found", "Could not find nutrition info for this item.");
+          Alert.alert(
+            "Not Found",
+            "Could not find nutrition info for this item."
+          );
         }
       }
     } catch (err) {
@@ -149,17 +170,25 @@ export default function BarcodeScanner({
     }
   };
 
-  if (Platform.OS === 'web') {
+  if (Platform.OS === "web") {
     return (
       <Modal visible={visible} animationType="slide">
         <View className="flex-1 justify-center items-center bg-gray-900">
           <View className="bg-white rounded-xl p-6 mx-4">
-            <Text className="text-lg font-inter-bold mb-4 text-center">Camera Not Available</Text>
-            <Text className="text-gray-600 font-inter mb-4 text-center">
-              Barcode scanning is not supported on web. Please use a mobile device.
+            <Text className="text-lg font-inter-bold mb-4 text-center text-[#2e2e2e]">
+              Camera Not Available
             </Text>
-            <TouchableOpacity className="bg-primary-500 rounded-xl py-3 px-6" onPress={onClose}>
-              <Text className="text-white font-inter-bold text-center">Close</Text>
+            <Text className="text-[#555] font-inter mb-4 text-center">
+              Barcode scanning is not supported on web. Please use a mobile
+              device.
+            </Text>
+            <TouchableOpacity
+              className="bg-[#00cc88] rounded-xl py-3 px-6"
+              onPress={onClose}
+            >
+              <Text className="text-white font-inter-bold text-center">
+                Close
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -173,15 +202,27 @@ export default function BarcodeScanner({
       <Modal visible={visible} animationType="slide">
         <View className="flex-1 justify-center items-center bg-gray-900">
           <View className="bg-white rounded-xl p-6 mx-4">
-            <Text className="text-lg font-inter-bold mb-4 text-center">Camera Permission Required</Text>
-            <Text className="text-gray-600 font-inter mb-4 text-center">
+            <Text className="text-lg font-inter-bold mb-4 text-center text-[#2e2e2e]">
+              Camera Permission Required
+            </Text>
+            <Text className="text-[#555] font-inter mb-4 text-center">
               This feature requires camera access to scan barcodes.
             </Text>
-            <TouchableOpacity className="bg-primary-500 rounded-xl py-3 px-6 mb-3" onPress={requestPermission}>
-              <Text className="text-white font-inter-bold text-center">Grant Permission</Text>
+            <TouchableOpacity
+              className="bg-[#00cc88] rounded-xl py-3 px-6 mb-3"
+              onPress={requestPermission}
+            >
+              <Text className="text-white font-inter-bold text-center">
+                Grant Permission
+              </Text>
             </TouchableOpacity>
-            <TouchableOpacity className="bg-gray-500 rounded-xl py-3 px-6" onPress={onClose}>
-              <Text className="text-white font-inter-bold text-center">Cancel</Text>
+            <TouchableOpacity
+              className="bg-[#b0b0b0] rounded-xl py-3 px-6"
+              onPress={onClose}
+            >
+              <Text className="text-white font-inter-bold text-center">
+                Cancel
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -195,21 +236,28 @@ export default function BarcodeScanner({
         <CameraView
           style={{ flex: 1 }}
           facing="back"
-          barcodeScannerSettings={{ barcodeTypes: ['qr', 'ean13', 'code128', 'upc_a', 'upc_e'] }}
+          barcodeScannerSettings={{
+            barcodeTypes: ["qr", "ean13", "code128", "upc_a", "upc_e"],
+          }}
           onBarcodeScanned={handleBarCodeScanned}
         >
           <View className="absolute top-12 left-4 z-10">
-            <TouchableOpacity className="bg-black/50 rounded-full p-3" onPress={onClose}>
+            <TouchableOpacity
+              className="bg-black/50 rounded-full p-3"
+              onPress={onClose}
+            >
               <X size={24} color="white" />
             </TouchableOpacity>
           </View>
 
           <View className="flex-1 justify-center items-center">
-            <View className="w-64 h-64 border-4 border-white rounded-xl items-center justify-center">
+            <View className="w-64 h-64 border-4 border-[#00cc88] rounded-xl items-center justify-center">
               {loading ? (
-                <ActivityIndicator size="large" color="#FFF" />
+                <ActivityIndicator size="large" color="#00cc88" />
               ) : (
-                <Text className="text-white mt-2 text-center font-inter">Position barcode within the frame</Text>
+                <Text className="text-white mt-2 text-center font-inter">
+                  Position barcode within the frame
+                </Text>
               )}
             </View>
           </View>

@@ -6,8 +6,8 @@ interface CircularProgressProps {
   size: number;
   strokeWidth: number;
   progress: number; // value between 0–100
-  color: string;
-  backgroundColor?: string;
+  color: string; // primary color: e.g. "#00cc88"
+  backgroundColor?: string; // optional: default to soft gray
   children?: React.ReactNode;
 }
 
@@ -16,7 +16,7 @@ export default function CircularProgress({
   strokeWidth,
   progress,
   color,
-  backgroundColor = '#e5e7eb',
+  backgroundColor = '#d8e6f4', // pastel gray-blue background
   children,
 }: CircularProgressProps) {
   const radius = (size - strokeWidth) / 2;
@@ -24,9 +24,12 @@ export default function CircularProgress({
   const strokeDashoffset = circumference - (progress / 100) * circumference;
 
   return (
-    <View style={{ width: size, height: size }} className="justify-center items-center">
+    <View
+      style={{ width: size, height: size }}
+      className="justify-center items-center"
+    >
       <Svg width={size} height={size} style={StyleSheet.absoluteFill}>
-        {/* Background circle */}
+        {/* Background circle (light pastel gray) */}
         <Circle
           cx={size / 2}
           cy={size / 2}
@@ -35,7 +38,7 @@ export default function CircularProgress({
           strokeWidth={strokeWidth}
           fill="transparent"
         />
-        {/* Foreground (progress) circle */}
+        {/* Progress circle */}
         <Circle
           cx={size / 2}
           cy={size / 2}
@@ -46,11 +49,11 @@ export default function CircularProgress({
           strokeDashoffset={strokeDashoffset}
           strokeLinecap="round"
           fill="transparent"
-          transform={`rotate(-90 ${size / 2} ${size / 2})`} // rotate to start from top
+          transform={`rotate(-90 ${size / 2} ${size / 2})`}
         />
       </Svg>
 
-      {/* Optional center content (e.g. text) */}
+      {/* Centered child content (text or icon) */}
       <View className="absolute items-center justify-center">
         {children}
       </View>

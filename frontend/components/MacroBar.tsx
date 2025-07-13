@@ -5,7 +5,7 @@ interface MacroBarProps {
   label: string;
   current: number;
   goal: number;
-  color: string;
+  color: string; // still passed in as prop, e.g., "#3aae68"
   unit?: string;
 }
 
@@ -16,20 +16,20 @@ export default function MacroBar({
   color,
   unit = "g",
 }: MacroBarProps) {
-  const safeGoal = goal > 0 ? goal : 1; // prevent division by zero
+  const safeGoal = goal > 0 ? goal : 1;
   const percentage = Math.min((current / safeGoal) * 100, 100);
 
   return (
     <View className="mb-4">
       <View className="flex-row justify-between items-center mb-2">
-        <Text className="text-gray-700 font-inter-medium">{label}</Text>
-        <Text className="text-gray-600 font-inter">
+        <Text className="text-[#2e2e2e] font-inter-medium">{label}</Text>
+        <Text className="text-[#7a7a7a] font-inter">
           {current.toFixed(1)}
           {unit} / {goal.toFixed(0)}
           {unit}
         </Text>
       </View>
-      <View className="bg-gray-200 rounded-full h-2 overflow-hidden">
+      <View className="bg-[#d8e6f4] rounded-full h-2 overflow-hidden">
         <View
           style={{ width: `${percentage}%`, backgroundColor: color }}
           className="h-2 rounded-full"

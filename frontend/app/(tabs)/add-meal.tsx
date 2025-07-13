@@ -110,117 +110,119 @@ export default function AddMeal() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50">
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        className="flex-1"
-      >
-        <View className="px-6 py-4 bg-white">
-          <Text className="text-2xl font-inter-bold text-gray-900">Add Meal</Text>
-          <Text className="text-gray-600 font-inter mt-1">
-            Describe your meal or take a photo
-          </Text>
+    <SafeAreaView className="flex-1 bg-[#F1F7FF]">
+  <KeyboardAvoidingView
+    behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    className="flex-1"
+  >
+    {/* Header */}
+    <View className="px-6 py-4 bg-white">
+      <Text className="text-2xl font-inter-bold text-[#2e2e2e]">Add Meal</Text>
+      <Text className="text-[#7a7a7a] font-inter mt-1">
+        Describe your meal or take a photo
+      </Text>
+    </View>
+
+    <View className="flex-1 px-6 py-4">
+      {/* Meal Text Input */}
+      <View className="bg-white rounded-2xl p-4 shadow-sm mb-4">
+        <Text className="text-[#2e2e2e] font-inter-medium mb-3">Describe your meal</Text>
+        <View className="bg-[#d8e6f4] rounded-xl p-4 mb-4 min-h-[80px]">
+          <TextInput
+            className="text-[#2e2e2e] font-inter text-base"
+            placeholder="e.g., Paneer with rice and salad"
+            value={mealText}
+            onChangeText={setMealText}
+            multiline
+            textAlignVertical="top"
+          />
         </View>
+        <TouchableOpacity
+          className={`bg-[#00cc88] rounded-xl py-3 px-4 flex-row items-center justify-center ${loading ? 'opacity-50' : ''}`}
+          onPress={analyzeMealText}
+          disabled={loading}
+        >
+          <Zap size={20} color="white" />
+          <Text className="text-white font-inter-bold ml-2">
+            {loading ? 'Analyzing...' : 'Analyze with AI'}
+          </Text>
+        </TouchableOpacity>
+      </View>
 
-        <View className="flex-1 px-6 py-4">
-          {/* Text Input */}
-          <View className="bg-white rounded-2xl p-4 shadow-sm mb-4">
-            <Text className="text-gray-700 font-inter-medium mb-3">Describe your meal</Text>
-            <View className="bg-gray-50 rounded-xl p-4 mb-4 min-h-[80px]">
-              <TextInput
-                className="text-gray-900 font-inter text-base"
-                placeholder="e.g., Paneer with rice and salad"
-                value={mealText}
-                onChangeText={setMealText}
-                multiline
-                textAlignVertical="top"
-              />
-            </View>
-            <TouchableOpacity
-              className={`bg-primary-500 rounded-xl py-3 px-4 flex-row items-center justify-center ${loading ? 'opacity-50' : ''}`}
-              onPress={analyzeMealText}
-              disabled={loading}
-            >
-              <Zap size={20} color="white" />
-              <Text className="text-white font-inter-bold ml-2">
-                {loading ? 'Analyzing...' : 'Analyze with AI'}
-              </Text>
-            </TouchableOpacity>
-          </View>
+      {/* Upload Buttons */}
+      <View className="bg-white rounded-2xl p-4 shadow-sm mb-4">
+        <Text className="text-[#2e2e2e] font-inter-medium mb-3">Or take/upload a photo</Text>
+        <View className="flex-row space-x-3">
+          <TouchableOpacity
+            className="flex-1 bg-[#3aae68] rounded-xl py-3 px-4 flex-row items-center justify-center"
+            onPress={() => uploadMealImage(true)}
+          >
+            <Camera size={20} color="white" />
+            <Text className="text-white font-inter-bold ml-2">Camera</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            className="flex-1 bg-[#0097e6] rounded-xl py-3 px-4 flex-row items-center justify-center"
+            onPress={() => uploadMealImage(false)}
+          >
+            <Upload size={20} color="white" />
+            <Text className="text-white font-inter-bold ml-2">Upload</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
 
-          {/* Upload Buttons */}
-          <View className="bg-white rounded-2xl p-4 shadow-sm mb-4">
-            <Text className="text-gray-700 font-inter-medium mb-3">Or take/upload a photo</Text>
-            <View className="flex-row space-x-3">
-              <TouchableOpacity
-                className="flex-1 bg-secondary-500 rounded-xl py-3 px-4 flex-row items-center justify-center"
-                onPress={() => uploadMealImage(true)}
-              >
-                <Camera size={20} color="white" />
-                <Text className="text-white font-inter-bold ml-2">Camera</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                className="flex-1 bg-accent-500 rounded-xl py-3 px-4 flex-row items-center justify-center"
-                onPress={() => uploadMealImage(false)}
-              >
-                <Upload size={20} color="white" />
-                <Text className="text-white font-inter-bold ml-2">Upload</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
+      {/* Image Preview */}
+      {selectedImage && (
+        <View className="bg-white rounded-2xl p-4 shadow-sm mb-4">
+          <Text className="text-[#2e2e2e] font-inter-medium mb-3">Selected Image</Text>
+          <Image
+            source={{ uri: selectedImage }}
+            className="w-full h-48 rounded-xl"
+            resizeMode="cover"
+          />
+        </View>
+      )}
 
-          {/* Image Preview */}
-          {selectedImage && (
-            <View className="bg-white rounded-2xl p-4 shadow-sm mb-4">
-              <Text className="text-gray-700 font-inter-medium mb-3">Selected Image</Text>
-              <Image
-                source={{ uri: selectedImage }}
-                className="w-full h-48 rounded-xl"
-                resizeMode="cover"
-              />
-            </View>
-          )}
-
-          {/* Meal Preview */}
-          {mealPreview && (
-            <View className="bg-white rounded-2xl p-4 shadow-sm mb-4">
-              <Text className="text-gray-700 font-inter-medium mb-3">Meal Analysis</Text>
-              <View className="bg-primary-50 rounded-xl p-4 mb-4">
-                <Text className="text-gray-900 font-inter-medium mb-1">
-                  {mealPreview.mealText}
-                </Text>
-                <Text className="text-gray-500 font-inter text-sm mb-3">
-                  Confidence: {mealPreview.confidence?.toFixed(1) || 90}%
-                </Text>
-                <View className="flex-row justify-between">
-                  <View className="items-center">
-                    <Text className="text-lg font-bold text-primary-600">{mealPreview.calories}</Text>
-                    <Text className="text-gray-600 text-sm">Calories</Text>
-                  </View>
-                  <View className="items-center">
-                    <Text className="text-lg font-bold text-secondary-600">{mealPreview.protein}g</Text>
-                    <Text className="text-gray-600 text-sm">Protein</Text>
-                  </View>
-                  <View className="items-center">
-                    <Text className="text-lg font-bold text-accent-600">{mealPreview.carbs}g</Text>
-                    <Text className="text-gray-600 text-sm">Carbs</Text>
-                  </View>
-                  <View className="items-center">
-                    <Text className="text-lg font-bold text-red-600">{mealPreview.fats}g</Text>
-                    <Text className="text-gray-600 text-sm">Fats</Text>
-                  </View>
-                </View>
+      {/* Meal Analysis Preview */}
+      {mealPreview && (
+        <View className="bg-white rounded-2xl p-4 shadow-sm mb-4">
+          <Text className="text-[#2e2e2e] font-inter-medium mb-3">Meal Analysis</Text>
+          <View className="bg-[#eafaf4] rounded-xl p-4 mb-4">
+            <Text className="text-[#2e2e2e] font-inter-medium mb-1">
+              {mealPreview.mealText}
+            </Text>
+            <Text className="text-[#7a7a7a] font-inter text-sm mb-3">
+              Confidence: {mealPreview.confidence?.toFixed(1) || 90}%
+            </Text>
+            <View className="flex-row justify-between">
+              <View className="items-center">
+                <Text className="text-lg font-bold text-[#00cc88]">{mealPreview.calories}</Text>
+                <Text className="text-[#7a7a7a] text-sm">Calories</Text>
+              </View>
+              <View className="items-center">
+                <Text className="text-lg font-bold text-[#3aae68]">{mealPreview.protein}g</Text>
+                <Text className="text-[#7a7a7a] text-sm">Protein</Text>
+              </View>
+              <View className="items-center">
+                <Text className="text-lg font-bold text-[#0097e6]">{mealPreview.carbs}g</Text>
+                <Text className="text-[#7a7a7a] text-sm">Carbs</Text>
+              </View>
+              <View className="items-center">
+                <Text className="text-lg font-bold text-[#ef4444]">{mealPreview.fats}g</Text>
+                <Text className="text-[#7a7a7a] text-sm">Fats</Text>
               </View>
             </View>
-          )}
-
-          {loading && (
-            <View className="items-center mt-4">
-              <ActivityIndicator size="large" color="#0ea5e9" />
-            </View>
-          )}
+          </View>
         </View>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+      )}
+
+      {/* Loader */}
+      {loading && (
+        <View className="items-center mt-4">
+          <ActivityIndicator size="large" color="#00cc88" />
+        </View>
+      )}
+    </View>
+  </KeyboardAvoidingView>
+</SafeAreaView>
   );
 }
