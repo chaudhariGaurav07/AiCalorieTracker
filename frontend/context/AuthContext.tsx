@@ -136,7 +136,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         "auth_token",
         "user",
         "has_goal",
-        "goal_prompted_once", // ❌ clear this too
+        "goal_prompted_once", //  clear this too
       ]);
     }
   };
