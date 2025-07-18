@@ -34,7 +34,7 @@ interface ProgressData {
 }
 
 export default function Progress() {
-  const { token } = useAuth();
+  const { token,logout } = useAuth();
   const [progressData, setProgressData] = useState<ProgressData | null>(null);
   const [timeframe, setTimeframe] = useState<'weekly' | 'monthly'>('weekly');
   const [loading, setLoading] = useState(true);
@@ -44,6 +44,11 @@ export default function Progress() {
   }, []);
 
   const fetchProgressData = async () => {
+    if (!token) {
+      console.warn('🚫 No token found — forcing logout');
+      await logout();
+      return;
+    }
     try {
       const response = await fetch(`${BASE_URL}/logs/history`, {
         headers: { Authorization: `Bearer ${token}` },

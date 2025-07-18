@@ -142,6 +142,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const setGoal = async (goal: GoalInput) => {
+    if (!token) {
+      console.warn(" No token found — forcing logout");
+      await logout();
+      return;
+    }
+  
     const res = await fetch(`${GOAL_API}/set`, {
       method: "POST",
       headers: {
@@ -150,18 +156,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       },
       body: JSON.stringify(goal),
     });
-
+  
     const data = await res.json();
     if (!res.ok) throw new Error(data.message || "Failed to set goal");
-
+  
     setHasGoal(true);
     await AsyncStorage.setItem("has_goal", "true");
-    await AsyncStorage.setItem("goal_prompted_once", "true"); // ✅ mark as prompted
+    await AsyncStorage.setItem("goal_prompted_once", "true"); // mark as prompted
   };
+  
 
   const checkGoal = async (accessToken?: string): Promise<boolean> => {
+    const authToken = accessToken || token;
+  
+    if (!authToken) {
+      console.warn(" No token found — forcing logout");
+      await logout();
+      return false;
+    }
+  
     try {
-      const authToken = accessToken || token;
       const res = await fetch(`${GOAL_API}/get`, {
         headers: { Authorization: `Bearer ${authToken}` },
       });
@@ -179,6 +193,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       return false;
     }
   };
+  
   
 
   return (

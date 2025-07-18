@@ -49,7 +49,7 @@ interface TodayData {
 }
 
 export default function Dashboard() {
-  const { user, token } = useAuth();
+  const { user, token, logout } = useAuth();
   const [todayData, setTodayData] = useState<TodayData | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -57,6 +57,12 @@ export default function Dashboard() {
   const { steps = 0 } = useSteps();
 
   const fetchTodayData = async () => {
+    if (!token) {
+      console.warn("🚫 No token found — forcing logout");
+      Alert.alert("Session Expired", "Please log in again.");
+      await logout();
+      return;
+    }
     try {
       const response = await fetch(`${BASE_URL}/logs/todays-log`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -305,3 +311,5 @@ export default function Dashboard() {
     </SafeAreaView>
   );
 }
+
+
