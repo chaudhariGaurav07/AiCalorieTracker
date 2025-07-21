@@ -17,21 +17,18 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login, hasGoal } = useAuth();
- 
+  const { login } = useAuth();
+  const router = useRouter();
 
   const handleLogin = async () => {
-    const router = useRouter();
-  
     if (!email || !password) {
       Alert.alert('Error', 'Please fill in all fields');
       return;
     }
-  
+
     setLoading(true);
     try {
-      const goalStatus = await login(email, password); // ← returns goalStatus directly
-  
+      const goalStatus = await login(email, password);
       if (!goalStatus) {
         router.replace('/set-goal');
       } else {
@@ -44,32 +41,32 @@ export default function Login() {
       setLoading(false);
     }
   };
-  
 
   return (
-    <SafeAreaView className="flex-1 bg-gradient-to-br from-primary-50 to-secondary-50">
+    <SafeAreaView className="flex-1 bg-[#eaf4fb]">
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        className="flex-1 justify-center px-8"
+        className="flex-1 justify-center px-6"
       >
-        <View className="bg-white rounded-3xl p-8 shadow-lg">
+        <View className="bg-[#ffffff] rounded-3xl p-8 shadow-md">
           {/* Header */}
           <View className="items-center mb-8">
-            <View className="bg-primary-500 rounded-full p-4 mb-4">
+            <View className="bg-[#00cc88] rounded-full p-4 mb-3">
               <LogIn size={32} color="white" />
             </View>
-            <Text className="text-3xl font-inter-bold text-gray-900">Welcome Back</Text>
-            <Text className="text-gray-600 font-inter mt-2 text-center">
+            <Text className="text-3xl font-bold text-gray-900 mb-1">Welcome Back</Text>
+            <Text className="text-[#7a7a7a] text-center">
               Sign in to continue your fitness journey
             </Text>
           </View>
 
           {/* Form */}
-          <View className="space-y-4">
-            <View>
-              <Text className="text-gray-700 font-inter-medium mb-2">Email</Text>
+          <View>
+            {/* Email Field */}
+            <View className="mb-5">
+              <Text className="text-gray-700 font-medium mb-2">Email</Text>
               <TextInput
-                className="bg-gray-50 rounded-xl px-4 py-4 text-gray-900 font-inter border border-gray-200 focus:border-primary-500"
+                className="bg-[#f4f4f5] rounded-xl px-4 py-4 text-gray-900 border border-gray-200"
                 placeholder="Enter your email"
                 value={email}
                 onChangeText={setEmail}
@@ -79,10 +76,11 @@ export default function Login() {
               />
             </View>
 
-            <View>
-              <Text className="text-gray-700 font-inter-medium mb-2">Password</Text>
+            {/* Password Field */}
+            <View className="mb-2">
+              <Text className="text-gray-700 font-medium mb-2">Password</Text>
               <TextInput
-                className="bg-gray-50 rounded-xl px-4 py-4 text-gray-900 font-inter border border-gray-200 focus:border-primary-500"
+                className="bg-[#f4f4f5] rounded-xl px-4 py-4 text-gray-900 border border-gray-200"
                 placeholder="Enter your password"
                 value={password}
                 onChangeText={setPassword}
@@ -91,28 +89,30 @@ export default function Login() {
               />
             </View>
 
-            <Link
-              href="/auth/forgot-password"
-              className="text-primary-600 font-inter-medium text-right"
-            >
-              Forgot Password?
-            </Link>
+            {/* Forgot Password */}
+            <View className="w-full items-end mb-6">
+              <Link href="/auth/forgot-password" className="text-[#3aae68] font-medium">
+                Forgot Password?
+              </Link>
+            </View>
 
+            {/* Sign In Button */}
             <TouchableOpacity
-              className={`bg-primary-500 rounded-xl py-4 items-center ${
+              className={`bg-[#00cc88] rounded-xl py-4 items-center mb-4 ${
                 loading ? 'opacity-50' : ''
               }`}
               onPress={handleLogin}
               disabled={loading}
             >
-              <Text className="text-white font-inter-bold text-lg">
+              <Text className="text-white font-bold text-lg">
                 {loading ? 'Signing In...' : 'Sign In'}
               </Text>
             </TouchableOpacity>
 
-            <View className="flex-row justify-center mt-6">
-              <Text className="text-gray-600 font-inter">Don't have an account? </Text>
-              <Link href="/auth/register" className="text-primary-600 font-inter-bold">
+            {/* Sign Up Prompt */}
+            <View className="flex-row justify-center mt-4">
+              <Text className="text-[#7a7a7a]">Don't have an account? </Text>
+              <Link href="/auth/register" className="text-[#3aae68] font-bold">
                 Sign Up
               </Link>
             </View>

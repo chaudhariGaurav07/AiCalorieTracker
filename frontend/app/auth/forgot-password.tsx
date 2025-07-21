@@ -12,12 +12,12 @@ import {
 import { Link, useRouter } from 'expo-router';
 import { Mail } from 'lucide-react-native';
 
-const BASE_URL = 'https://aicalorietracker.onrender.com/api/v1';
-
 export default function ForgotPassword() {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+
+  const BASE_URL = 'https://aicalorietracker.onrender.com/api/v1';
 
   const handleForgotPassword = async () => {
     if (!email) {
@@ -29,18 +29,14 @@ export default function ForgotPassword() {
     try {
       const response = await fetch(`${BASE_URL}/users/forgot-password`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
       });
 
       if (response.ok) {
-        Alert.alert(
-          'Success',
-          'Password reset link sent to your email',
-          [{ text: 'OK', onPress: () => router.replace('/auth/login') }]
-        );
+        Alert.alert('Success', 'Password reset link sent to your email', [
+          { text: 'OK', onPress: () => router.replace('/auth/login') },
+        ]);
       } else {
         Alert.alert('Error', 'Failed to send reset link');
       }
@@ -52,50 +48,56 @@ export default function ForgotPassword() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-gradient-to-br from-primary-50 to-secondary-50">
+    <SafeAreaView className="flex-1 bg-[#f5f9ff]">
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        className="flex-1 justify-center px-8"
+        className="flex-1 justify-center px-6"
       >
-        <View className="bg-white rounded-3xl p-8 shadow-lg">
-          <View className="items-center mb-8">
-            <View className="bg-accent-500 rounded-full p-4 mb-4">
-              <Mail size={32} color="white" />
+        <View className="bg-white p-6 rounded-3xl shadow-md border border-[#d0e3f0]">
+          {/* Icon + Heading */}
+          <View className="items-center mb-6">
+            <View className="bg-[#ff7043] p-3 rounded-full">
+              <Mail size={28} color="#fff" />
             </View>
-            <Text className="text-3xl font-inter-bold text-gray-900">Reset Password</Text>
-            <Text className="text-gray-600 font-inter mt-2 text-center">
-              Enter your email to receive a password reset link
+            <Text className="text-2xl font-bold mt-3 text-[#222]">
+              Forgot Password
+            </Text>
+            <Text className="text-center text-base text-[#777] mt-2">
+              Enter your email address to receive a reset link.
             </Text>
           </View>
 
-          <View className="space-y-4">
+          {/* Input + Button */}
+          <View className="gap-4">
             <View>
-              <Text className="text-gray-700 font-inter-medium mb-2">Email</Text>
+              <Text className="text-[#444] mb-1.5 font-semibold">Email</Text>
               <TextInput
-                className="bg-gray-50 rounded-xl px-4 py-4 text-gray-900 font-inter border border-gray-200 focus:border-primary-500"
-                placeholder="Enter your email"
+                placeholder="you@example.com"
+                placeholderTextColor="#aaa"
                 value={email}
                 onChangeText={setEmail}
                 keyboardType="email-address"
                 autoCapitalize="none"
-                autoComplete="email"
+                className="bg-[#f0f4f8] p-3 rounded-xl border border-[#ccddee] text-black"
               />
             </View>
 
             <TouchableOpacity
-              className={`bg-accent-500 rounded-xl py-4 items-center ${loading ? 'opacity-50' : ''}`}
               onPress={handleForgotPassword}
               disabled={loading}
+              className={`p-3.5 rounded-xl items-center ${
+                loading ? 'bg-[#ff7043bb]' : 'bg-[#ff7043]'
+              }`}
             >
-              <Text className="text-white font-inter-bold text-lg">
+              <Text className="text-white text-base font-bold">
                 {loading ? 'Sending...' : 'Send Reset Link'}
               </Text>
             </TouchableOpacity>
 
-            <View className="flex-row justify-center mt-6">
-              <Text className="text-gray-600 font-inter">Remember your password? </Text>
-              <Link href="/auth/login" className="text-primary-600 font-inter-bold">
-                Sign In
+            <View className="flex-row justify-center mt-2">
+              <Text className="text-[#666]">Remember your password? </Text>
+              <Link href="/auth/login">
+                <Text className="text-[#ff7043] font-semibold">Sign In</Text>
               </Link>
             </View>
           </View>
