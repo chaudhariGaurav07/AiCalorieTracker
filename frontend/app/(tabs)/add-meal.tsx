@@ -110,13 +110,13 @@ export default function AddMeal() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-[#F1F7FF]">
+    <SafeAreaView className="flex-1 bg-soft ">
   <KeyboardAvoidingView
     behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     className="flex-1"
   >
     {/* Header */}
-    <View className="px-6 py-4 bg-white">
+    <View className="px-6 py-12 bg-card">
       <Text className="text-2xl font-inter-bold text-[#2e2e2e]">Add Meal</Text>
       <Text className="text-[#7a7a7a] font-inter mt-1">
         Describe your meal or take a photo
@@ -149,27 +149,38 @@ export default function AddMeal() {
         </TouchableOpacity>
       </View>
 
-      {/* Upload Buttons */}
-      <View className="bg-white rounded-2xl p-4 shadow-sm mb-4">
-        <Text className="text-[#2e2e2e] font-inter-medium mb-3">Or take/upload a photo</Text>
-        <View className="flex-row space-x-3">
-          <TouchableOpacity
-            className="flex-1 bg-[#3aae68] rounded-xl py-3 px-4 flex-row items-center justify-center"
-            onPress={() => uploadMealImage(true)}
-          >
-            <Camera size={20} color="white" />
-            <Text className="text-white font-inter-bold ml-2">Camera</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            className="flex-1 bg-[#0097e6] rounded-xl py-3 px-4 flex-row items-center justify-center"
-            onPress={() => uploadMealImage(false)}
-          >
-            <Upload size={20} color="white" />
-            <Text className="text-white font-inter-bold ml-2">Upload</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+      {/* Upload Buttons - Coming Soon */}
+<View
+  className="bg-white rounded-2xl p-4 shadow-sm mb-4"
+  style={{ opacity: 0.4 }}
+>
+  <Text className="text-[#2e2e2e] font-inter-medium mb-3"> Take / upload a photo</Text>
+  
+  {/* Disabled Buttons */}
+  <View className="flex-row space-x-3">
+    <TouchableOpacity
+      className="flex-1 bg-[#3aae68] rounded-xl py-3 px-4 flex-row items-center justify-center"
+      disabled={true}
+    >
+      <Camera size={20} color="white" />
+      <Text className="text-white font-inter-bold ml-2">Camera</Text>
+    </TouchableOpacity>
+    <TouchableOpacity
+      className="flex-1 bg-[#0097e6] rounded-xl py-3 px-4 flex-row items-center justify-center"
+      disabled={true}
+    >
+      <Upload size={20} color="white" />
+      <Text className="text-white font-inter-bold ml-2">Upload</Text>
+    </TouchableOpacity>
+  </View>
 
+  {/* Coming Soon Notice */}
+  <View className="mt-3 px-2">
+    <Text className="text-[#eb4141] text-lg font-inter text-center ">
+       coming soon..!
+    </Text>
+  </View>
+</View>
       {/* Image Preview */}
       {selectedImage && (
         <View className="bg-white rounded-2xl p-4 shadow-sm mb-4">
@@ -184,9 +195,9 @@ export default function AddMeal() {
 
       {/* Meal Analysis Preview */}
       {mealPreview && (
-        <View className="bg-white rounded-2xl p-4 shadow-sm mb-4">
+        <View className="bg-card rounded-2xl p-4 shadow-sm mb-4">
           <Text className="text-[#2e2e2e] font-inter-medium mb-3">Meal Analysis</Text>
-          <View className="bg-[#eafaf4] rounded-xl p-4 mb-4">
+          <View className="bg-card rounded-xl p-4 mb-4">
             <Text className="text-[#2e2e2e] font-inter-medium mb-1">
               {mealPreview.mealText}
             </Text>

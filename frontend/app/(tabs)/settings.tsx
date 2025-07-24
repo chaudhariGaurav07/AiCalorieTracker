@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import {
   View,
@@ -66,21 +67,19 @@ export default function Settings() {
   };
 
   const handleChangePassword = async () => {
-    if (
-      !passwordForm.currentPassword ||
-      !passwordForm.newPassword ||
-      !passwordForm.confirmPassword
-    ) {
+    const { currentPassword, newPassword, confirmPassword } = passwordForm;
+
+    if (!currentPassword || !newPassword || !confirmPassword) {
       Alert.alert('Error', 'Please fill in all fields');
       return;
     }
 
-    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+    if (newPassword !== confirmPassword) {
       Alert.alert('Error', 'New passwords do not match');
       return;
     }
 
-    if (passwordForm.newPassword.length < 6) {
+    if (newPassword.length < 6) {
       Alert.alert('Error', 'Password must be at least 6 characters');
       return;
     }
@@ -94,8 +93,8 @@ export default function Settings() {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          oldPassword: passwordForm.currentPassword,
-          newPassword: passwordForm.newPassword,
+          oldPassword: currentPassword,
+          newPassword: newPassword,
         }),
       });
 
@@ -104,11 +103,7 @@ export default function Settings() {
       if (response.ok) {
         Alert.alert('Success', 'Password changed successfully');
         setShowChangePassword(false);
-        setPasswordForm({
-          currentPassword: '',
-          newPassword: '',
-          confirmPassword: '',
-        });
+        setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
       } else {
         Alert.alert('Error', data.message || 'Failed to change password');
       }
@@ -149,39 +144,35 @@ export default function Settings() {
         style: 'destructive',
         onPress: async () => {
           await logout();
-          router.replace('/auth/login'); // redirect to login
+          router.replace('/auth/login');
         },
       },
     ]);
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50">
-      <View className="px-6 py-4 bg-white">
+    <SafeAreaView className="flex-1 bg-soft">
+      <View className="px-6 py-12 bg-card">
         <Text className="text-2xl font-inter-bold text-gray-900">Settings</Text>
-        <Text className="text-gray-600 font-inter mt-1">
-          Manage your account and preferences
-        </Text>
+        <Text className="text-muted font-inter mt-1">Manage your account and preferences</Text>
       </View>
 
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-        <View className="bg-white mx-6 mt-4 rounded-2xl p-6 shadow-sm">
+        <View className="bg-card mx-6 mt-4 rounded-2xl p-6 shadow-sm">
           <View className="items-center mb-6">
             <View className="bg-primary-100 rounded-full w-20 h-20 items-center justify-center mb-3">
               <User size={32} color="#0ea5e9" />
             </View>
             <Text className="text-xl font-inter-bold text-gray-900">{user?.username}</Text>
-            <Text className="text-gray-600 font-inter">{user?.email}</Text>
+            <Text className="text-muted font-inter">{user?.email}</Text>
           </View>
         </View>
 
-        <View className="bg-white mx-6 mt-4 rounded-2xl p-4 shadow-sm">
-          <Text className="text-lg font-inter-bold text-gray-900 mb-4">
-            Account Settings
-          </Text>
+        <View className="bg-card mx-6 mt-4 rounded-2xl p-4 shadow-sm">
+          <Text className="text-lg font-inter-bold text-gray-900 mb-4">Account Settings</Text>
 
           <TouchableOpacity
-            className="flex-row items-center py-3 px-2 border-b border-gray-100"
+            className="flex-row items-center py-3 px-2 border-b border-border"
             onPress={() => setShowEditProfile(true)}
           >
             <View className="bg-secondary-100 rounded-lg p-2 mr-3">
@@ -191,7 +182,7 @@ export default function Settings() {
           </TouchableOpacity>
 
           <TouchableOpacity
-            className="flex-row items-center py-3 px-2 border-b border-gray-100"
+            className="flex-row items-center py-3 px-2 border-b border-border"
             onPress={() => setShowChangePassword(true)}
           >
             <View className="bg-accent-100 rounded-lg p-2 mr-3">
@@ -201,7 +192,7 @@ export default function Settings() {
           </TouchableOpacity>
 
           <TouchableOpacity
-            className="flex-row items-center py-3 px-2 border-b border-gray-100"
+            className="flex-row items-center py-3 px-2 border-b border-border"
             onPress={handleForgotPassword}
           >
             <View className="bg-blue-100 rounded-lg p-2 mr-3">
@@ -210,10 +201,7 @@ export default function Settings() {
             <Text className="flex-1 text-gray-900 font-inter">Forgot Password</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity
-            className="flex-row items-center py-3 px-2"
-            onPress={handleLogout}
-          >
+          <TouchableOpacity className="flex-row items-center py-3 px-2" onPress={handleLogout}>
             <View className="bg-red-100 rounded-lg p-2 mr-3">
               <LogOut size={20} color="#ef4444" />
             </View>
@@ -224,32 +212,32 @@ export default function Settings() {
         <View className="h-6" />
       </ScrollView>
 
-      {/* Profile Modal */}
+      {/* Edit Profile Modal */}
       <Modal visible={showEditProfile} animationType="slide" transparent>
         <View className="flex-1 justify-center items-center bg-black/50">
-          <View className="bg-white rounded-2xl p-6 mx-6 w-full max-w-sm">
+          <View className="bg-card rounded-2xl p-6 mx-6 w-full max-w-sm">
             <Text className="text-xl font-inter-bold mb-4 text-gray-900">Edit Profile</Text>
             <TextInput
-              className="bg-gray-100 rounded-xl px-4 py-3 mb-3 text-gray-800"
+              className="bg-input rounded-xl px-4 py-3 mb-3 text-gray-900"
               placeholder="Email"
               value={editForm.email}
               onChangeText={(text) => setEditForm({ ...editForm, email: text })}
             />
             <TextInput
-              className="bg-gray-100 rounded-xl px-4 py-3 mb-6 text-gray-800"
+              className="bg-input rounded-xl px-4 py-3 mb-6 text-gray-900"
               placeholder="Username"
               value={editForm.username}
               onChangeText={(text) => setEditForm({ ...editForm, username: text })}
             />
             <View className="flex-row space-x-3">
               <TouchableOpacity
-                className="flex-1 bg-gray-500 rounded-xl py-3 items-center"
+                className="flex-1 bg-muted rounded-xl py-3 items-center"
                 onPress={() => setShowEditProfile(false)}
               >
                 <Text className="text-white font-inter-bold">Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                className={`flex-1 bg-primary-500 rounded-xl py-3 items-center ${
+                className={`flex-1 bg-primary rounded-xl py-3 items-center ${
                   loading ? 'opacity-50' : ''
                 }`}
                 onPress={handleEditProfile}
@@ -264,27 +252,27 @@ export default function Settings() {
         </View>
       </Modal>
 
-      {/* Password Modal */}
+      {/* Change Password Modal */}
       <Modal visible={showChangePassword} animationType="slide" transparent>
         <View className="flex-1 justify-center items-center bg-black/50">
-          <View className="bg-white rounded-2xl p-6 mx-6 w-full max-w-sm">
+          <View className="bg-card rounded-2xl p-6 mx-6 w-full max-w-sm">
             <Text className="text-xl font-inter-bold mb-4 text-gray-900">Change Password</Text>
             <TextInput
-              className="bg-gray-100 rounded-xl px-4 py-3 mb-3 text-gray-800"
+              className="bg-input rounded-xl px-4 py-3 mb-3 text-gray-900"
               placeholder="Current Password"
               secureTextEntry
               value={passwordForm.currentPassword}
               onChangeText={(text) => setPasswordForm({ ...passwordForm, currentPassword: text })}
             />
             <TextInput
-              className="bg-gray-100 rounded-xl px-4 py-3 mb-3 text-gray-800"
+              className="bg-input rounded-xl px-4 py-3 mb-3 text-gray-900"
               placeholder="New Password"
               secureTextEntry
               value={passwordForm.newPassword}
               onChangeText={(text) => setPasswordForm({ ...passwordForm, newPassword: text })}
             />
             <TextInput
-              className="bg-gray-100 rounded-xl px-4 py-3 mb-6 text-gray-800"
+              className="bg-input rounded-xl px-4 py-3 mb-6 text-gray-900"
               placeholder="Confirm New Password"
               secureTextEntry
               value={passwordForm.confirmPassword}
@@ -292,13 +280,13 @@ export default function Settings() {
             />
             <View className="flex-row space-x-3">
               <TouchableOpacity
-                className="flex-1 bg-gray-500 rounded-xl py-3 items-center"
+                className="flex-1 bg-muted rounded-xl py-3 items-center"
                 onPress={() => setShowChangePassword(false)}
               >
                 <Text className="text-white font-inter-bold">Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                className={`flex-1 bg-primary-500 rounded-xl py-3 items-center ${
+                className={`flex-1 bg-primary rounded-xl py-3 items-center ${
                   loading ? 'opacity-50' : ''
                 }`}
                 onPress={handleChangePassword}
