@@ -24,32 +24,29 @@ const generateAccessAndRefreshToken = async (userId) => {
 
 const registerUser = asyncHandler(async (req, res) => {
   const { email, username, password } = req.body;
-  //   console.log(email, username, password);
 
   // Validation
-  if (
-    [email, username, password].some((field) => !field || field.trim() === "")
-  ) {
+  if ([email, username, password].some((field) => !field?.trim())) {
     throw new ApiError(400, "All fields are required");
   }
 
-  //checking if user already exits
+  // Check for existing user
   const existedUser = await User.findOne({
     $or: [{ username }, { email }],
   });
 
   if (existedUser) {
-    throw new ApiError(409, "User With Email Or username alreasy exits");
+    throw new ApiError(409, "User with email or username already exists");
   }
 
-  //create user in db
+  // Create user
   const user = await User.create({
     username: username.toLowerCase(),
     email,
     password,
   });
 
-  //remove sensitive field from responce
+  // Get safe user data
   const createdUser = await User.findById(user._id).select(
     "-password -refreshToken"
   );
@@ -58,10 +55,17 @@ const registerUser = asyncHandler(async (req, res) => {
     throw new ApiError(500, "Something went wrong while creating user");
   }
 
-  return res
-    .status(201)
-    .json(new ApiResponce(200, "User Registerd Successfully"));
+  const { accessToken } = await generateAccessAndRefreshToken(createdUser._id);
+
+
+ return res.status(201).json(
+  new ApiResponce(201, {
+    accessToken,
+    user: createdUser,
+  }, "User Registered Successfully")
+);
 });
+
 
 const loginUser = asyncHandler(async (req, res) => {
   //getiing data from req.body
