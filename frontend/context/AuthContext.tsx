@@ -18,6 +18,7 @@ interface GoalInput {
 
 interface AuthContextType {
   user: User | null;
+  setUser: React.Dispatch<React.SetStateAction<User | null>>;
   token: string | null;
   hasGoal: boolean;
   login: (email: string, password: string) => Promise<boolean>; 
@@ -200,6 +201,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     <AuthContext.Provider
       value={{
         user,
+        setUser,
         token,
         hasGoal,
         login,

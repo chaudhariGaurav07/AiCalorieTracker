@@ -18,7 +18,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const BASE_URL = 'https://aicalorietracker.onrender.com/api/v1';
 
 export default function Settings() {
-  const { user, logout, token } = useAuth();
+  const { user, setUser, logout, token } = useAuth();
   const router = useRouter();
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
@@ -42,7 +42,7 @@ export default function Settings() {
     setLoading(true);
     try {
       const response = await fetch(`${BASE_URL}/users/update-account`, {
-        method: 'PUT',
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
@@ -54,6 +54,7 @@ export default function Settings() {
 
       if (response.ok) {
         await AsyncStorage.setItem('user', JSON.stringify(data.data));
+        setUser(data.data);
         Alert.alert('Success', 'Profile updated successfully');
         setShowEditProfile(false);
       } else {
@@ -87,7 +88,7 @@ export default function Settings() {
     setLoading(true);
     try {
       const response = await fetch(`${BASE_URL}/users/change-password`, {
-        method: 'PUT',
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
