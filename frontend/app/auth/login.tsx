@@ -51,7 +51,7 @@ export default function Login() {
         <View className="bg-[#ffffff] rounded-3xl p-8 shadow-md">
           {/* Header */}
           <View className="items-center mb-8">
-            <View className="bg-[#00cc88] rounded-full p-4 mb-3">
+            <View className="bg-[#00c5cc] rounded-full p-4 mb-3">
               <LogIn size={32} color="white" />
             </View>
             <Text className="text-3xl font-bold text-gray-900 mb-1">Welcome Back</Text>
@@ -91,14 +91,14 @@ export default function Login() {
 
             {/* Forgot Password */}
             <View className="w-full items-end mb-6">
-              <Link href="/auth/forgot-password" className="text-[#3aae68] font-medium">
+              <Link href="/auth/forgot-password" className="text-[#00c5cc] font-medium">
                 Forgot Password?
               </Link>
             </View>
 
             {/* Sign In Button */}
             <TouchableOpacity
-              className={`bg-[#00cc88] rounded-xl py-4 items-center mb-4 ${
+              className={`bg-[#00c5cc] rounded-xl py-4 items-center mb-4 ${
                 loading ? 'opacity-50' : ''
               }`}
               onPress={handleLogin}
@@ -112,7 +112,7 @@ export default function Login() {
             {/* Sign Up Prompt */}
             <View className="flex-row justify-center mt-4">
               <Text className="text-[#7a7a7a]">Don't have an account? </Text>
-              <Link href="/auth/register" className="text-[#3aae68] font-bold">
+              <Link href="/auth/register" className="text-[#00c5cc] font-bold">
                 Sign Up
               </Link>
             </View>
