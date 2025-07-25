@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-
 interface User {
   _id: string;
   email: string;
@@ -46,6 +45,7 @@ const API_BASE = "https://aicalorietracker.onrender.com/api/v1/users";
 const GOAL_API = "https://aicalorietracker.onrender.com/api/v1/goals";
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+ 
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [hasGoal, setHasGoal] = useState(false);
@@ -122,25 +122,28 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const logout = async () => {
-    try {
-      await fetch(`${API_BASE}/logout`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-    } catch (error) {
-      console.warn("Logout request failed. Clearing local data anyway.");
-    } finally {
-      setUser(null);
-      setToken(null);
-      setHasGoal(false);
-      await AsyncStorage.multiRemove([
-        "auth_token",
-        "user",
-        "has_goal",
-        "goal_prompted_once", //  clear this too
-      ]);
-    }
-  };
+  try {
+    await fetch(`${API_BASE}/logout`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  } catch (error) {
+    console.warn("Logout request failed. Clearing local data anyway.");
+  } finally {
+    setUser(null);
+    setToken(null);
+    setHasGoal(false);
+
+    await AsyncStorage.multiRemove([
+      "auth_token",
+      "user",
+      "has_goal",
+      "goal_prompted_once",
+    ]);
+
+    
+  }
+};
 
   const setGoal = async (goal: GoalInput) => {
     if (!token) {
