@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { useAuth } from "../../context/AuthContext";
 import { LineChart, BarChart } from "react-native-chart-kit";
-import { useRouter } from 'expo-router';
+import { useRouter } from "expo-router";
 const screenWidth = Dimensions.get("window").width;
 const BASE_URL = "https://aicalorietracker.onrender.com/api/v1";
 
@@ -35,21 +35,20 @@ interface ProgressData {
 
 export default function Progress() {
   const { token } = useAuth();
-  const router = useRouter()
+  const router = useRouter();
   const [progressData, setProgressData] = useState<ProgressData | null>(null);
   const [timeframe, setTimeframe] = useState<"weekly" | "monthly">("weekly");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-  if (!token) {
-    router.replace("/auth/login");
-    return;
-  }
-  fetchProgressData();
-}, [token]);
+    if (!token) {
+      router.replace("/auth/login");
+      return;
+    }
+    fetchProgressData();
+  }, [token]);
 
   const fetchProgressData = async () => {
-
     try {
       const response = await fetch(`${BASE_URL}/logs/history`, {
         headers: { Authorization: `Bearer ${token}` },
