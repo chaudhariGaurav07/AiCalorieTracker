@@ -20,8 +20,9 @@ export const useSteps = () => {
         const result = await Pedometer.getStepCountAsync(startOfDay, now);
         setSteps(result.steps);
 
-        subscription = Pedometer.watchStepCount(result => {
-          setSteps(prev => prev + result.steps);
+        subscription = Pedometer.watchStepCount(({ steps: newSteps }) => {
+          // Just set result.steps + newSteps (optional)
+          setSteps(prev => prev + newSteps); // ONLY if you store live steps separately
         });
       }
     };
