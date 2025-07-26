@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import {
   View,
@@ -54,7 +53,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
-  const { steps = 0 } = useSteps();
+  const { steps = 0, error } = useSteps();
 
   const fetchTodayData = async () => {
     if (!token) {
@@ -167,7 +166,7 @@ export default function Dashboard() {
     : 0;
   const netCalories = consumed.calories - burned;
 
-   return (
+  return (
     <SafeAreaView className="flex-1 bg-soft">
       <View className="flex-row justify-between items-center px-6 py-12 bg-card">
         <View className="flex-1 pr-3">
@@ -190,7 +189,9 @@ export default function Dashboard() {
       <ScrollView
         className="flex-1"
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
       >
         {/* Summary */}
         <View className="bg-card mx-6 mt-4 rounded-2xl p-6 shadow-md">
@@ -235,9 +236,27 @@ export default function Dashboard() {
           <Text className="text-lg font-inter-bold text-gray-900 mb-4">
             Macronutrients
           </Text>
-          <MacroBar label="Protein" current={consumed.protein} goal={goal.protein} color="#3aae68" unit="g" />
-          <MacroBar label="Carbs" current={consumed.carbs} goal={goal.carbs} color="#0097e6" unit="g" />
-          <MacroBar label="Fats" current={consumed.fats} goal={goal.fats} color="#ef4444" unit="g" />
+          <MacroBar
+            label="Protein"
+            current={consumed.protein}
+            goal={goal.protein}
+            color="#3aae68"
+            unit="g"
+          />
+          <MacroBar
+            label="Carbs"
+            current={consumed.carbs}
+            goal={goal.carbs}
+            color="#0097e6"
+            unit="g"
+          />
+          <MacroBar
+            label="Fats"
+            current={consumed.fats}
+            goal={goal.fats}
+            color="#ef4444"
+            unit="g"
+          />
         </View>
 
         {/* Activity */}
@@ -246,16 +265,32 @@ export default function Dashboard() {
             Today's Activity
           </Text>
           <View className="flex-row justify-between">
-            <View className="items-center">
+            {/* Steps */}
+            <View className="items-center w-1/2 min-h-[100px] justify-center">
               <View className="rounded-full p-3 mb-2">
                 <Footprints size={24} color="#3aae68" />
               </View>
-              <Text className="text-xl font-inter-bold text-gray-900">
-                {serverSteps.toLocaleString()}
-              </Text>
-              <Text className="text-muted font-inter text-sm">Steps</Text>
+              {error ? (
+                <>
+                  <Text className="text-center text-red-500 text-sm">
+                    ⚠️ Step tracking not available on your device
+                  </Text>
+                  <Text className="text-muted font-inter text-sm mt-1">
+                    Steps
+                  </Text>
+                </>
+              ) : (
+                <>
+                  <Text className="text-xl font-inter-bold text-gray-900">
+                    {serverSteps.toLocaleString()}
+                  </Text>
+                  <Text className="text-muted font-inter text-sm">Steps</Text>
+                </>
+              )}
             </View>
-            <View className="items-center">
+
+            {/* Calories */}
+            <View className="items-center w-1/2 min-h-[100px] justify-center">
               <View className="rounded-full p-3 mb-2">
                 <Flame size={24} color="#f59e0b" />
               </View>
@@ -284,7 +319,10 @@ export default function Dashboard() {
         <View className="h-6" />
       </ScrollView>
 
-      <BarcodeScanner visible={showScanner} onClose={() => setShowScanner(false)} />
+      <BarcodeScanner
+        visible={showScanner}
+        onClose={() => setShowScanner(false)}
+      />
     </SafeAreaView>
   );
 }
