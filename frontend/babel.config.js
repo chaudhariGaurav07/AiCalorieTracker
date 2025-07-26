@@ -1,20 +1,18 @@
-const { plugin } = require("mongoose");
-
 module.exports = function (api) {
-    api.cache(true);
-    return {
-      presets: [
-        ["babel-preset-expo", { jsxImportSource: "nativewind" }],
-        "nativewind/babel",
+  api.cache(true);
+  return {
+    presets: [
+      ["babel-preset-expo", { jsxImportSource: "nativewind" }],
+    ],
+    plugins: [
+      "nativewind/babel",
+      [
+        "babel-plugin-dotenv-import",
+        {
+          moduleName: "@env",
+          path: ".env",
+        },
       ],
-      plugins: [
-        [
-          'babel-plugin-dotenv-import',
-          {
-            moduleName: '@env',
-            path: '.env',
-          },
-        ],
-      ]
-    };
+    ],
   };
+};
