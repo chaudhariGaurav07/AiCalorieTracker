@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "extra": {
+      "eas": {
+        "projectId": "6c5c9302-dc0c-475b-ad6e-017d7f5879b9"
+      }
+    },
+    "android": {
+      "package": "com.gaurav_7717.calwithai"
+    }
+  }
+}
