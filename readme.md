@@ -1,212 +1,93 @@
-🥗 AI Calorie Tracker Backend
+# 🍽️ AI Calorie Tracker App
 
-A full-featured backend for tracking calories using AI-powered meal analysis, image uploads, barcode scanning, and step-count-based calorie burn. Built with Node.js, Express, and MongoDB.
+An intelligent and visually clean Calorie Tracker built with **React Native + Expo Router**, integrated with an **AI-powered backend** that helps users log meals, track calories, and monitor progress toward health goals.
 
-🚀 Features
+---
 
-🔐 User Authentication (Register, Login, Forgot/Reset Password)
+## 📱 Features
 
-📸 Upload meal photos (via Multer + Cloudinary)
+- 🔐 **Authentication** (Register/Login/Logout)
+- 🎯 **Set personalized fitness goals** (maintain/gain/lose)
+- 📊 **Dashboard with**:
+  - Calorie progress ring
+  - Macronutrient breakdown (Protein, Carbs, Fats)
+  - Step count + Calories burned
+  - Recently logged meals
+- 📷 **AI Meal Logging**: Upload or describe food and let AI calculate macros
+- 📈 **Progress Screen**:
+  - Weekly & Monthly calorie trends
+  - Bar chart of average macros
+  - Dynamic calorie range analysis
+- 📦 **Offline-safe** with AsyncStorage
+- 📸 **Meal image uploads**
+- 📡 **Barcode Scanner**
+- 👣 **Step tracking synced with backend**
 
-🤖 AI-powered calorie & macronutrient analysis from meal text
+---
 
-📦 Barcode scanner support (WIP)
+## 🛠️ Tech Stack
 
-🏃 Step counter & calorie burn logging
+- **Frontend**: React Native + Expo Router + Tailwind CSS (via NativeWind)
+- **Backend**: Node.js + Express + MongoDB + Cloudinary
+- **AI Integration**: OpenAI / Nutrition API (via backend)
+- **Charting**: react-native-chart-kit
+- **Device Sensors**: Expo Pedometer, ImagePicker
+- **Cloud Build**: EAS (Expo Application Services)
 
-🗕️ Daily calorie logs with totals
+---
 
-📊 Progress tracking API
+## ✨ Getting Started
 
-🧪 Tech Stack
-
-Backend: Node.js, Express.js
-
-Database: MongoDB (via Mongoose)
-
-AI: GPT-based meal analysis
-
-Image Upload: Multer, Cloudinary
-
-Authentication: JWT
-
-Deployment: Render
-
-📁 Project Structure
-
-src/
-├── config/                 # Cloudinary config
-├── controllers/           # Route controllers (auth, meals, barcode, AI, etc.)
-├── db/                    # MongoDB connection
-├── middlewares/           # JWT auth, multer, error handling
-├── models/                # Mongoose schemas (User, DailyLog, CalorieGoal)
-├── routes/                # Express routers
-├── utils/                 # Utility functions (AI prompt, sendMail, error classes)
-├── app.js                 # Express app
-└── index.js               # App entrypoint
-
-🔧 Environment Variables (.env)
-
-Create a .env file in root with the following:
-
-PORT=5000
-MONGODB_URI=your_mongodb_uri
-JWT_SECRET=your_jwt_secret
-CLOUDINARY_CLOUD_NAME=your_cloud_name
-CLOUDINARY_API_KEY=your_api_key
-CLOUDINARY_API_SECRET=your_api_secret
-MAIL_USER=your_email@gmail.com
-MAIL_PASS=your_email_app_password
-
-📦 Installation
-
-# Clone the repo
-git clone https://github.com/chaudhariGaurav07/AiCalorieTracker.git
-cd AiCalorieTracker
+```bash
+# Clone repo
+git clone https://github.com/your-username/ai-calorie-tracker.git
+cd frontend
 
 # Install dependencies
 npm install
 
-# Run locally
-npm run dev
+# Start expo
+npx expo start
+```
 
-🌐 API Endpoints (Short Overview)
+---
 
-Auth
+## 📸 Screenshots
 
-Method
+### 🏠 Dashboard  
+![Dashboard](./assets/screenshots/dashboard.png)
 
-Endpoint
+### 🎯 Set Goal  
+![Set Goal](./assets/screenshots/set-goal.png)
 
-Description
+### 📈 Progress  
+![Progress](./assets/screenshots/progress.png)
 
-POST
+### 🍛 Add Meal  
+![Add Meal](./assets/screenshots/add-meal.png)
 
-/api/v1/user/register
+> Make sure to place your screenshots under `assets/screenshots/` or update the paths accordingly.
 
-Register a new user
+---
 
-POST
+## 📦 Build APK with EAS
 
-/api/v1/user/login
+```bash
+# From frontend folder
+eas build -p android --profile preview
+```
 
-Login and get token
+---
 
-POST
+## 🙌 Author
 
-/api/v1/user/forgot-password
+M**Gaurav Chaudhari**
 
-Send reset email
+📧 Email: [gauravchaudhari7717@gmail.com]  
+🔗 [LinkedIn]([https://linkedin.com/in/yourprofile](https://www.linkedin.com/in/gaurav-chaudhari-b20176227/))
 
-POST
+---
 
-/api/v1/user/reset-password/:token
+## 📄 License
 
-Reset password
-
-Meals
-
-Method
-
-Endpoint
-
-Description
-
-POST
-
-/api/v1/meal/add
-
-Add meal (AI analysis)
-
-POST
-
-/api/v1/meal/add-photo
-
-Upload meal photo with entry
-
-PUT
-
-/api/v1/meal/edit/:date/:index
-
-Edit a specific meal entry
-
-DELETE
-
-/api/v1/meal/delete/:date/:index
-
-Delete a specific meal
-
-Daily Log
-
-Method
-
-Endpoint
-
-Description
-
-GET
-
-/api/v1/log/today
-
-Get today's log
-
-GET
-
-/api/v1/log/history
-
-Get all daily logs
-
-Step Tracker
-
-Method
-
-Endpoint
-
-Description
-
-POST
-
-/api/v1/step/add
-
-Add steps for calorie burn
-
-GET
-
-/api/v1/step/today
-
-View today's step data
-
-🧪 Testing with Postman
-
-Use Bearer Token auth after login. Example Postman collection available soon.
-
-📤 Deployment (Render)
-
-Push to GitHub
-
-Create new Web Service on Render
-
-Set environment variables in Render > Environment
-
-Add this to your package.json:
-
-"scripts": {
-  "start": "node src/index.js",
-  "dev": "nodemon src/index.js"
-}
-
-Set Start Command to:
-
-npm start
-
-✅ Todo / Upcoming
-
-
-
-👨‍💻 Author
-
-Gaurav ChaudhariGitHub Profile
-
-📄 License
-
-MIT – Feel free to use & modify!
+This project is licensed under the **MIT License**.
