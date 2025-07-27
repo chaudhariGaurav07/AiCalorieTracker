@@ -81,10 +81,18 @@ eas build -p android --profile preview
 
 ## 🙌 Author
 
-M**Gaurav Chaudhari**
+**Gaurav Chaudhari**
 
 📧 Email: [gauravchaudhari7717@gmail.com]  
 🔗 [LinkedIn]([https://linkedin.com/in/yourprofile](https://www.linkedin.com/in/gaurav-chaudhari-b20176227/))
+
+---
+
+## 📥 Download
+
+You can try out the app by downloading the latest APK:
+
+🔗 [Download APK]([https://your-apk-link.com/app-release.apk](https://expo.dev/accounts/gaurav_7717/projects/aiCalorieTracker/builds/3b257b9c-1d4d-4ea4-90b3-f12b00fc8504))
 
 ---
 
