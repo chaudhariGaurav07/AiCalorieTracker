@@ -23,7 +23,6 @@
     "babel-plugin-dotenv-import": "^3.0.1",
     "dotenv": "^17.2.0",
     "expo": "^53.0.20",
-    "expo-barcode-scanner": "^13.0.1",
     "expo-blur": "~14.1.5",
     "expo-camera": "~16.1.11",
     "expo-constants": "~17.1.7",
@@ -67,16 +66,14 @@
     "typescript": "~5.8.3"
   },
   "private": true,
-
   "expo": {
-  "doctor": {
-    "reactNativeDirectoryCheck": {
-      "exclude": [
-        "expo-barcode-scanner",
-        "react-native-chart-kit"
-      ],
-      "listUnknownPackages": false
+    "doctor": {
+      "reactNativeDirectoryCheck": {
+        "exclude": [
+          "react-native-chart-kit"
+        ],
+        "listUnknownPackages": false
+      }
     }
   }
-}
 }

@@ -182,8 +182,10 @@ export default function Progress() {
             </View>
             <View className="items-center">
               <Text className="text-xl font-inter-bold text-accent">
-                {Math.max(...progressData.weekly.calories) -
-                  Math.min(...progressData.weekly.calories)}
+                {(
+                  Math.max(...progressData.weekly.calories) -
+                  Math.min(...progressData.weekly.calories)
+                ).toFixed(2)}
               </Text>
               <Text className="text-muted font-inter text-sm">Cal Range</Text>
             </View>
@@ -208,7 +210,10 @@ export default function Progress() {
 
         {/* Macros */}
         <View className="mx-6 mt-6 rounded-2xl p-4 bg-card shadow-sm mb-10">
-          <Text className="text-xl font-inter-bold mb-4"> 🍽️ Avg Daily Macros</Text>
+          <Text className="text-xl font-inter-bold mb-4">
+            {" "}
+            🍽️ Avg Daily Macros
+          </Text>
           <BarChart
             data={{
               labels: ["Protein", "Carbs", "Fats"],

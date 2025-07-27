@@ -9,6 +9,9 @@
       "distribution": "internal"
     },
     "preview": {
+      "env": {
+        "OPENROUTER_API_KEY": "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"
+      },
       "distribution": "internal"
     },
     "production": {
