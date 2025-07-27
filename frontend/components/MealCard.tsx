@@ -10,7 +10,7 @@ interface MealCardProps {
   fats: number;
   imageUrl?: string;
   timestamp: string;
-  onPress?: () => void;
+  onDelete?: () => void;
 }
 
 export default function MealCard({
@@ -21,14 +21,10 @@ export default function MealCard({
   fats,
   imageUrl,
   timestamp,
-  onPress,
+  onDelete,
 }: MealCardProps) {
   return (
-    <TouchableOpacity
-      className="bg-[#ffffff] rounded-xl p-4 mb-3 border border-[#eaf4fb] shadow-sm active:opacity-80"
-      onPress={onPress}
-      activeOpacity={0.9}
-    >
+    <View className="bg-[#ffffff] rounded-xl p-4 mb-3 border border-[#eaf4fb] shadow-sm">
       <View className="flex-row items-start">
         {imageUrl ? (
           <Image
@@ -59,12 +55,29 @@ export default function MealCard({
             <Text className="text-[#00cc88] font-inter-medium text-sm">
               {calories} cal
             </Text>
-            <Text className="text-[#7a7a7a] font-inter text-sm">P: {protein}g</Text>
-            <Text className="text-[#7a7a7a] font-inter text-sm">C: {carbs}g</Text>
-            <Text className="text-[#7a7a7a] font-inter text-sm">F: {fats}g</Text>
+            <Text className="text-[#7a7a7a] font-inter text-sm">
+              P: {protein}g
+            </Text>
+            <Text className="text-[#7a7a7a] font-inter text-sm">
+              C: {carbs}g
+            </Text>
+            <Text className="text-[#7a7a7a] font-inter text-sm">
+              F: {fats}g
+            </Text>
+          </View>
+
+          <View className="flex-row mt-2 space-x-4">
+            
+            {onDelete && (
+              <TouchableOpacity onPress={onDelete}>
+                <Text className="text-red-500 font-inter-medium text-sm">
+                  Delete
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
       </View>
-    </TouchableOpacity>
+    </View>
   );
 }

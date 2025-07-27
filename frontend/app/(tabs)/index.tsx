@@ -112,6 +112,28 @@ export default function Dashboard() {
     }
   };
 
+  const handleDeleteMeal = async (index: number) => {
+  const today = new Date().toISOString().split("T")[0]; // format: YYYY-MM-DD
+  try {
+    const res = await fetch(`${BASE_URL}/meal/${today}/${index}`, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (res.ok) {
+      Alert.alert("Deleted", "Meal deleted successfully");
+      fetchTodayData(); // Refresh UI
+    } else {
+      Alert.alert("Failed", "Could not delete the meal");
+    }
+  } catch (err) {
+    console.error("Delete error:", err);
+    Alert.alert("Error", "Something went wrong");
+  }
+};
+
   const syncStepsToBackend = async (stepCount: number) => {
     try {
       await fetch(`${BASE_URL}/steps/log-steps`, {
@@ -308,7 +330,7 @@ export default function Dashboard() {
             Recent Meals
           </Text>
           {recentMeals.length > 0 ? (
-            recentMeals.map((meal) => <MealCard key={meal.id} {...meal} />)
+            recentMeals.map((meal,index) => <MealCard key={meal.id} {...meal} onDelete={() => handleDeleteMeal(index)} />)
           ) : (
             <Text className="text-center text-muted font-inter">
               No meals logged today
