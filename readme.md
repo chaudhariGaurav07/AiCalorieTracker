@@ -54,19 +54,7 @@ npx expo start
 
 ## 📸 Screenshots
 
-### 🏠 Dashboard  
-![Dashboard](./assets/screenshots/dashboard.png)
-
-### 🎯 Set Goal  
-![Set Goal](./assets/screenshots/set-goal.png)
-
-### 📈 Progress  
-![Progress](./assets/screenshots/progress.png)
-
-### 🍛 Add Meal  
-![Add Meal](./assets/screenshots/add-meal.png)
-
-> Make sure to place your screenshots under `assets/screenshots/` or update the paths accordingly.
+<p align="center"> <img src="./assets/screenshots/dashboard.png" width="200"/> <img src="./assets/screenshots/set-goal.png" width="200"/> <img src="./assets/screenshots/progress.png" width="200"/> <img src="./assets/screenshots/add-meal.png" width="200"/> </p>
 
 ---
 
