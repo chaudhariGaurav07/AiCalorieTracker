@@ -44,6 +44,10 @@ export const useAuth = () => {
 const API_BASE = "https://aicalorietracker.onrender.com/api/v1/users";
 const GOAL_API = "https://aicalorietracker.onrender.com/api/v1/goals";
 
+
+// const API_BASE = "https://localhost:5000/api/v1/users";
+// const GOAL_API = "https://localhost:5000/api/v1/goals";
+
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
  
   const [user, setUser] = useState<User | null>(null);
