@@ -27,6 +27,7 @@ import progressRoutes from "./routes/progress.routes.js"
 import barcodeRoutes from "./routes/barcode.routes.js";
 import stepRoutes from "./routes/step.routes.js";
 import foodRoutes from "./routes/food.routes.js";
+import parserRoutes from "./routes/parser.route.js";
 
 
 app.use("/api/v1/users", userRoutes)
@@ -38,5 +39,6 @@ app.use("/api/v1/progress", progressRoutes);
 app.use("/api/v1/barcode", barcodeRoutes);
 app.use("/api/v1/steps", stepRoutes);
 app.use("/api/v1/foods", foodRoutes);
+app.use("/api/v1/parse", parserRoutes);
 
 export {app}
