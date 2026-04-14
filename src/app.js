@@ -11,7 +11,7 @@ app.use(cors({
 
 
 // app.use(express.json())
-app.use(express.json({limit:"20kb"}))//if data is come using json
+app.use(express.json({limit:"10mb"}))//if data is come using json
 app.use(express.urlencoded({extended: true})) // if data is come using url
 
 // to perform crud ops and access the cokiees from user browser
@@ -26,6 +26,7 @@ import mealRoutes from "./routes/meal.routes.js"
 import progressRoutes from "./routes/progress.routes.js" 
 import barcodeRoutes from "./routes/barcode.routes.js";
 import stepRoutes from "./routes/step.routes.js";
+import foodRoutes from "./routes/food.routes.js";
 
 
 app.use("/api/v1/users", userRoutes)
@@ -36,5 +37,6 @@ app.use("/api/v1/meal", mealRoutes);
 app.use("/api/v1/progress", progressRoutes);
 app.use("/api/v1/barcode", barcodeRoutes);
 app.use("/api/v1/steps", stepRoutes);
+app.use("/api/v1/foods", foodRoutes);
 
 export {app}
