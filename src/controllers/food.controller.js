@@ -1,4 +1,5 @@
 import { Food } from "../models/Foods.model.js";
+import { clearFoodCache } from "../utils/foodCache.js";
 
 //add multiple foods
 export const addFoods = async (req, res) => {
@@ -27,6 +28,9 @@ export const addFoods = async (req, res) => {
     }
 
     const insertedFoods = await Food.insertMany(foodsToInsert, { ordered: false });
+
+    // Invalidate Memory Cache 
+    clearFoodCache();
 
     res.status(201).json({
       success: true,

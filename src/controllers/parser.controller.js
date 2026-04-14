@@ -1,5 +1,6 @@
 import { Food } from "../models/Foods.model.js";
 import { UnrecognizedFoodLog } from "../models/UnrecognizedFoodLog.model.js";
+import { getCachedFoods } from "../utils/foodCache.js";
 import Fuse from "fuse.js";
 import { wordsToNumbers } from "words-to-numbers";
 
@@ -13,7 +14,8 @@ const COMMON_UNITS = [
 export const parseMealText = async (text) => {
   if (!text) throw new Error("Text is required");
 
-  const foods = await Food.find();
+  // Fetch from RAM cache (or hit DB once if cache miss)
+  const foods = await getCachedFoods();
   
   const fuseOptions = {
     keys: ["name", "aliases"],

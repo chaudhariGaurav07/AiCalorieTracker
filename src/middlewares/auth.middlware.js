@@ -29,3 +29,16 @@ export const verifyJWT = asyncHandler(async (req, _, next) => {
      throw new ApiError(401, error?.message || "Invalid access token")
   }
 });
+
+export const verifyAdmin = asyncHandler(async (req, res, next) => {
+  // verifyJWT should always run before verifyAdmin
+  if (!req.user) {
+    throw new ApiError(401, "Unauthorized access. User is not authenticated.");
+  }
+
+  if (req.user.role !== "admin") {
+    throw new ApiError(403, "Forbidden. Only admins can access this route.");
+  }
+
+  next();
+});
