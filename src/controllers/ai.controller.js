@@ -1,8 +1,9 @@
 import { CalorieGoal } from "../models/CalorieGoal.model.js";
 import { DailyLog } from "../models/DailyLog.model.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
-import { analyzeMeal } from "../utils/gptPrompt.js";
+import { parseMealText } from "./parser.controller.js";
 import { ApiResponce } from "../utils/Apiresponce.js";
+import { ApiError } from "../utils/ApiError.js";
 
  export const addMealEntry = asyncHandler(async (req, res) => {
   const userId = req.user._id;
@@ -12,8 +13,8 @@ import { ApiResponce } from "../utils/Apiresponce.js";
     throw new ApiError(400, "Meal text is required");
   }
 
-  //Analyze meal using GPT
-  const analysis = await analyzeMeal(mealText);
+  // Analyze meal using custom database parser instead of GPT
+  const { totals: analysis } = await parseMealText(mealText);
   const today = new Date().toISOString().split("T")[0];
 
   //created today's log

@@ -3,7 +3,7 @@ import { DailyLog } from "../models/DailyLog.model.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponce } from "../utils/Apiresponce.js";
-import { analyzeMeal } from "../utils/gptPrompt.js";
+import { parseMealText } from "./parser.controller.js";
 
 export const editMealEntry = asyncHandler(async (req, res) => {
   const { date, index } = req.params;
@@ -72,7 +72,7 @@ export const deleteMealEntry = asyncHandler(async (req, res) => {
       throw new ApiError(400, "Meal text is required");
     }
   
-    const { calories, protein, carbs, fats } = await analyzeMeal(mealText);
+    const { totals: { calories, protein, carbs, fats } } = await parseMealText(mealText);
   
     const entry = {
       mealText,

@@ -1,5 +1,132 @@
 import { Food } from "../models/Foods.model.js";
+import { UnrecognizedFoodLog } from "../models/UnrecognizedFoodLog.model.js";
+import Fuse from "fuse.js";
+import { wordsToNumbers } from "words-to-numbers";
 
+const COMMON_UNITS = [
+  "plate", "plates", "bowl", "bowls", "katori", "cup", "cups", 
+  "tbsp", "piece", "pieces", "gram", "grams", "kg", 
+  "glass", "glasses", "pc", "pcs"
+];
+
+// Extracted internal function to be reused by other controllers
+export const parseMealText = async (text) => {
+  if (!text) throw new Error("Text is required");
+
+  const foods = await Food.find();
+  
+  const fuseOptions = {
+    keys: ["name", "aliases"],
+    threshold: 0.4,
+    includeScore: true,
+  };
+  const fuse = new Fuse(foods, fuseOptions);
+
+  let input = text.toLowerCase();
+  
+  let convertedWords = wordsToNumbers(input, { impliedHundreds: true });
+  input = convertedWords ? convertedWords.toString() : input;
+
+  const parts = input.split(/(?:\s+\+\s+|\s+and\s+|,|&|\s+with\s+)/).map(p => p.trim()).filter(Boolean);
+
+  const results = [];
+  const unmatchedItems = [];
+  
+  let totalCalories = 0;
+  let totalProtein = 0;
+  let totalCarbs = 0;
+  let totalFat = 0;
+
+  for (const part of parts) {
+    let quantity = 1;
+    let unit = "";
+    let foodNameString = part;
+
+    const qtyRegex = /([\d.]+)\s*([a-zA-Z]+)?/;
+    const match = foodNameString.match(qtyRegex);
+
+    if (match) {
+      quantity = parseFloat(match[1]);
+      if (match[2] && COMMON_UNITS.includes(match[2])) {
+        unit = match[2];
+        if (unit.endsWith('s') && unit !== 'glass') unit = unit.slice(0, -1);
+        if (unit === 'glasses') unit = 'glass';
+        foodNameString = foodNameString.replace(match[0], "").trim();
+      } else {
+        foodNameString = foodNameString.replace(match[1], "").trim();
+      }
+    }
+
+    if (!unit) {
+       for (let possibleUnit of COMMON_UNITS) {
+           const unitRegex = new RegExp(`\\b${possibleUnit}\\b`, 'i');
+           if (unitRegex.test(foodNameString)) {
+               unit = possibleUnit;
+               if (unit.endsWith('s') && unit !== 'glass') unit = unit.slice(0, -1);
+               if (unit === 'glasses') unit = 'glass';
+               foodNameString = foodNameString.replace(unitRegex, "").trim();
+               break;
+           }
+       }
+    }
+    
+    foodNameString = foodNameString.replace(/^(of|a|an)\s+/ig, "").trim();
+
+    if (!foodNameString) continue;
+
+    const matched = fuse.search(foodNameString);
+    
+    if (matched.length > 0 && matched[0].score <= 0.4) {
+      const item = matched[0].item;
+      
+      let finalUnit = unit;
+      let multiplier = 1;
+      
+      if (!finalUnit || !item.unitConversions || !item.unitConversions.get(finalUnit)) {
+         finalUnit = item.baseUnit;
+      }
+
+      if (item.unitConversions && item.unitConversions.get(finalUnit)) {
+         multiplier = item.unitConversions.get(finalUnit);
+      }
+
+      results.push({
+        food: item.name,
+        quantity,
+        unit: finalUnit
+      });
+
+      totalCalories += quantity * multiplier * (item.nutrition?.calories || 0);
+      totalProtein += quantity * multiplier * (item.nutrition?.protein || 0);
+      totalCarbs += quantity * multiplier * (item.nutrition?.carbs || 0);
+      totalFat += quantity * multiplier * (item.nutrition?.fat || 0);
+
+    } else {
+      unmatchedItems.push(foodNameString);
+      try {
+          await UnrecognizedFoodLog.create({
+             originalString: part,
+             reason: matched.length > 0 ? 'LOW_CONFIDENCE' : 'UNPARSEABLE'
+          });
+      } catch (dbErr) {
+          console.error("Failed to log unrecognized food:", dbErr.message);
+      }
+    }
+  }
+
+  return {
+    parsed: results,
+    unmatched: unmatchedItems,
+    totals: {
+      calories: totalCalories,
+      protein: totalProtein,
+      carbs: totalCarbs,
+      fats: totalFat
+    }
+  };
+};
+
+// Express Route Controller
 export const parseMeal = async (req, res) => {
   try {
     const { text } = req.body;
@@ -8,72 +135,15 @@ export const parseMeal = async (req, res) => {
       return res.status(400).json({ message: "Text is required" });
     }
 
-    const foods = await Food.find();
-    const input = text.toLowerCase();
+    const data = await parseMealText(text);
 
-    const results = [];
-
-    // Parse
-    for (let food of foods) {
-      const names = [food.name, ...food.aliases];
-
-      for (let name of names) {
-        if (input.includes(name)) {
-
-          const regex = new RegExp(`(\\d+)\\s*(\\w+)?\\s*${name}`);
-          const match = input.match(regex);
-
-          let quantity = 1;
-          let unit = food.baseUnit;
-
-          if (match) {
-            quantity = parseInt(match[1]);
-            if (match[2]) unit = match[2];
-          }
-
-          results.push({
-            food: food.name,
-            quantity,
-            unit
-          });
-
-          break;
-        }
-      }
-    }
-
-     
-    let totalCalories = 0;
-    let totalProtein = 0;
-
-    results.forEach(item => {
-      const food = foods.find(f => f.name === item.food);
-
-      if (!food) return;
-
-      let multiplier = 1;
-
-      // handle unit
-      if (food.unitConversions.get(item.unit)) {
-        multiplier = food.unitConversions.get(item.unit);
-      }
-
-      totalCalories += item.quantity * multiplier * food.nutrition.calories;
-      totalProtein += item.quantity * multiplier * food.nutrition.protein;
-    });
-
-    // Final Response
-    res.json({
+    return res.json({
       success: true,
-      parsed: results,
-      totals: {
-        calories: totalCalories,
-        protein: totalProtein
-      }
+      ...data
     });
 
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Parsing error" });
+    console.error("Parser Error:", error);
+    return res.status(500).json({ message: "Parsing error internal" });
   }
 };
