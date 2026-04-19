@@ -3,6 +3,7 @@ import { parseMealText } from "./parser.controller.js";
 import { DailyLog } from "../models/DailyLog.model.js";
 import { Food } from "../models/Foods.model.js";
 import { UnrecognizedFoodLog } from "../models/UnrecognizedFoodLog.model.js";
+import { CalorieGoal } from "../models/CalorieGoal.model.js";
 import { getCachedFoods } from "../utils/foodCache.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
@@ -106,13 +107,20 @@ export const processMealInput = asyncHandler(async (req, res) => {
       result = await handleAddMeals(userId, today, recognized, source);
   }
 
+  const calorieGoal = await CalorieGoal.findOne({ user: userId });
+
   return res.status(200).json(
     new ApiResponce(
       200,
       {
+        message: `Meal successfully ${intent.toLowerCase()}ed`,
         intent,
         source,
         ...result,
+        today: {
+          totals: result.log?.totals || {},
+          goal: calorieGoal || {},
+        },
         metrics: {
           input: text,
           source,

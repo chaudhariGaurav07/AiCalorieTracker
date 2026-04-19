@@ -1,9 +1,9 @@
 import { Router } from "express";
-import {addMealEntry} from "../controllers/ai.controller.js"
+import { processMealInput } from "../controllers/mlMeal.controller.js";
 import { verifyJWT } from "../middlewares/auth.middlware.js";
 
-const router = Router()
+const router = Router();
 
-router.post("/parse-food",verifyJWT, addMealEntry)
+router.post("/parse-food", verifyJWT, processMealInput);
 
 export default router;
