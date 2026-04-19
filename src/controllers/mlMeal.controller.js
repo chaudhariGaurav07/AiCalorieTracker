@@ -18,7 +18,7 @@ const CONFIDENCE_LOW = 0.6;
  * The ML model decides the intent (ADD/REMOVE/UPDATE).
  */
 export const processMealInput = asyncHandler(async (req, res) => {
-  const { text } = req.body;
+  const text = req.body.text || req.body.mealText;
 
   if (!text || !text.trim()) {
     throw new ApiError(400, "Text input is required");
@@ -28,6 +28,7 @@ export const processMealInput = asyncHandler(async (req, res) => {
 
   // ── Step 1: Call ML API (circuit breaker handles gating) ──
   const mlResult = await parseWithML(text);
+  console.log("[ML DEBUG] Raw results:", mlResult?.results);
 
   let parsedData;
   let source = "ML";
@@ -176,7 +177,28 @@ async function logUnrecognized(text, reason, confidence = null) {
   }
 }
 
-async function lookupNutrition(foodName, quantity, unit) {
+function parseNumericQuantity(qty) {
+  if (typeof qty === "number") return qty;
+  if (!qty) return 1;
+
+  const textQty = qty.toString().toLowerCase().trim();
+  const map = {
+    "half": 0.5,
+    "quarter": 0.25,
+    "one": 1,
+    "two": 2,
+    "double": 2,
+    "triple": 3
+  };
+
+  if (map[textQty] !== undefined) return map[textQty];
+
+  const num = parseFloat(textQty);
+  return isNaN(num) ? 1 : num;
+}
+
+async function lookupNutrition(foodName, rawQuantity, unit) {
+  const quantity = parseNumericQuantity(rawQuantity);
   const foods = await getCachedFoods();
   const fuse = new Fuse(foods, {
     keys: ["name", "aliases"],
@@ -212,6 +234,19 @@ async function lookupNutrition(foodName, quantity, unit) {
   };
 }
 
+function formatMealText(quantity, unit, food) {
+  const q = quantity || 1;
+  let u = unit || "piece";
+  
+  // Format quantity to 1 decimal place if it's a float, but keep integers as is
+  const displayQty = Number.isInteger(q) ? q : q.toFixed(1);
+
+  // If unit starts with a number (e.g. "1 piece"), strip that number to avoid "0.5 1 piece"
+  u = u.replace(/^\d+\s*/, "");
+
+  return `${displayQty} ${u} ${food}`;
+}
+
 async function handleAddMeals(userId, date, foods, source) {
   const entries = [];
   let totalCalories = 0, totalProtein = 0, totalCarbs = 0, totalFats = 0;
@@ -219,13 +254,13 @@ async function handleAddMeals(userId, date, foods, source) {
   for (const f of foods) {
     const nutrition = await lookupNutrition(f.food, f.quantity, f.unit);
     entries.push({
-      mealText: `${nutrition.quantity} ${nutrition.unit} ${nutrition.food}`,
+      mealText: formatMealText(nutrition.quantity, nutrition.unit, nutrition.food),
       calories: Math.round(nutrition.calories),
       protein: Math.round(nutrition.protein),
       carbs: Math.round(nutrition.carbs),
       fats: Math.round(nutrition.fats),
       source: source,
-      confidence: f.food_confidence || 0
+      confidence: source === "RULE" ? 1.0 : (f.food_confidence || 0)
     });
     totalCalories += nutrition.calories;
     totalProtein += nutrition.protein;
@@ -290,13 +325,13 @@ async function handleUpdateMeals(userId, date, foods, source) {
       const oldEntry = dailyLog.entries[idx];
       const nutrition = await lookupNutrition(f.food, f.quantity, f.unit);
       const newEntry = {
-        mealText: `${nutrition.quantity} ${nutrition.unit} ${nutrition.food}`,
+        mealText: formatMealText(nutrition.quantity, nutrition.unit, nutrition.food),
         calories: Math.round(nutrition.calories),
         protein: Math.round(nutrition.protein),
         carbs: Math.round(nutrition.carbs),
         fats: Math.round(nutrition.fats),
         source: source,
-        confidence: f.food_confidence || 0
+        confidence: source === "RULE" ? 1.0 : (f.food_confidence || 0)
       };
 
       dailyLog.totals.calories += newEntry.calories - oldEntry.calories;
@@ -310,13 +345,13 @@ async function handleUpdateMeals(userId, date, foods, source) {
       // Fallback add if not found
       const nutrition = await lookupNutrition(f.food, f.quantity, f.unit);
       const newEntry = {
-        mealText: `${nutrition.quantity} ${nutrition.unit} ${nutrition.food}`,
+        mealText: formatMealText(nutrition.quantity, nutrition.unit, nutrition.food),
         calories: Math.round(nutrition.calories),
         protein: Math.round(nutrition.protein),
         carbs: Math.round(nutrition.carbs),
         fats: Math.round(nutrition.fats),
         source: source,
-        confidence: f.food_confidence || 0
+        confidence: source === "RULE" ? 1.0 : (f.food_confidence || 0)
       };
       dailyLog.entries.push(newEntry);
       dailyLog.totals.calories += newEntry.calories;

@@ -62,4 +62,25 @@ app.use("/api/v1/foods", foodRoutes);
 app.use("/api/v1/parse", nlpLimiter, parserRoutes);
 app.use("/api/v1/admin", adminRoutes);
 
+// Global Error Handler
+import { ApiError } from "./utils/ApiError.js";
+
+app.use((err, req, res, next) => {
+  if (err instanceof ApiError) {
+    return res.status(err.statusCode).json({
+      success: false,
+      message: err.message,
+      errors: err.errors,
+    });
+  }
+
+  // Fallback for internal server errors
+  console.error("UNHANDLED ERROR:", err);
+  return res.status(500).json({
+    success: false,
+    message: "Internal Server Error",
+    error: err.message,
+  });
+});
+
 export {app}

@@ -1,7 +1,5 @@
 import axios from "axios";
 
-const ML_BASE_URL = process.env.ML_API_URL;
-
 // ─── Circuit Breaker State ──────────────────────────────
 const MAX_FAILURES = 3;
 const COOLDOWN_MS = 30_000; // 30s before retrying a downed API
@@ -64,14 +62,16 @@ export const parseWithML = async (text) => {
     return null;
   }
 
+  const baseUrl = process.env.ML_API_URL || "http://127.0.0.1:8000";
+
   try {
     const res = await axios
-      .post(`${ML_BASE_URL}/parse`, { text }, { timeout: 2000 })
+      .post(`${baseUrl}/parse`, { text }, { timeout: 2000 })
       .catch(async (err) => {
         // Retry once on first failure
         console.warn("ML API → Retry attempt...");
         return await axios.post(
-          `${ML_BASE_URL}/parse`,
+          `${baseUrl}/parse`,
           { text },
           { timeout: 2000 }
         );
@@ -100,8 +100,9 @@ export const parseWithML = async (text) => {
  * Check ML API health.
  */
 export const checkMLHealth = async () => {
+  const baseUrl = process.env.ML_API_URL || "http://127.0.0.1:8000";
   try {
-    const res = await axios.get(`${ML_BASE_URL}/health`, { timeout: 1000 });
+    const res = await axios.get(`${baseUrl}/health`, { timeout: 1000 });
     return res.data;
   } catch {
     return { status: "down" };
@@ -124,5 +125,5 @@ export const getCircuitStatus = () => ({
   lastErrorType,
   cooldownMs: COOLDOWN_MS,
   maxFailures: MAX_FAILURES,
-  apiUrl: ML_BASE_URL
+  apiUrl: process.env.ML_API_URL
 });
