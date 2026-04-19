@@ -67,20 +67,35 @@ export const processMealInput = asyncHandler(async (req, res) => {
     }
   }
 
-  // ── Step 3: Persistence Logic ──
-  const recognized = parsedData.results.filter((r) => r.status === "success");
-  const unrecognized = parsedData.results.filter((r) => r.status === "unrecognized");
+  // ── Step 3: Food Sanity & Persistence ──
+  const results = parsedData.results || [];
+  const unrecognized = results.filter((r) => r.status === "unrecognized");
 
+  // Perform full lookup on all tagged entities to verify they exist in our DB
+  const processedEntities = [];
+  const invalidEntities = [];
+
+  for (const item of results.filter(r => r.status === "success")) {
+     const nutrition = await lookupNutrition(item.food, item.quantity, item.unit);
+     if (nutrition.matched) {
+        processedEntities.push({ ...item, nutrition });
+     } else {
+        invalidEntities.push(item.food);
+     }
+  }
+
+  // Log unrecognized ones
   if (unrecognized.length > 0) {
     for (const item of unrecognized) {
        await logUnrecognized(item.raw, "UNRECOGNIZED_ENTITY");
     }
   }
 
-  if (recognized.length === 0) {
-    throw new ApiError(400, "Could not identify any food items", [
+  // If we found food but NONE of it is in our database, reject it
+  if (processedEntities.length === 0) {
+    throw new ApiError(400, "Could not identify any valid food items in your database", [
+      ...invalidEntities,
       ...(unrecognized.map((u) => u.raw) || []),
-      ...(parsedData._ruleUnmatched || []),
     ]);
   }
 
@@ -88,7 +103,6 @@ export const processMealInput = asyncHandler(async (req, res) => {
   const userId = req.user._id;
   const today = new Date().toISOString().split("T")[0];
 
-  const results = parsedData.results || [];
   const minConfidence = results.length > 0 ? Math.min(...results.map(r => r.food_confidence || 0)) : 0;
   const fallbackUsed = source === "RULE";
   const responseTime = `${Date.now() - startTime}ms`;
@@ -96,16 +110,11 @@ export const processMealInput = asyncHandler(async (req, res) => {
   let result;
   switch (intent) {
     case "ADD":
-      result = await handleAddMeals(userId, today, recognized, source);
-      break;
-    case "REMOVE":
-      result = await handleRemoveMeals(userId, today, recognized);
-      break;
-    case "UPDATE":
-      result = await handleUpdateMeals(userId, today, recognized, source);
+      // Pass pre-processed nutrition to handlers
+      result = await handleAddMealsWithNutrition(userId, today, processedEntities, source);
       break;
     default:
-      result = await handleAddMeals(userId, today, recognized, source);
+      result = await handleAddMealsWithNutrition(userId, today, processedEntities, source);
   }
 
   const calorieGoal = await CalorieGoal.findOne({ user: userId });
@@ -202,12 +211,20 @@ async function lookupNutrition(foodName, rawQuantity, unit) {
   const foods = await getCachedFoods();
   const fuse = new Fuse(foods, {
     keys: ["name", "aliases"],
-    threshold: 0.4,
+    threshold: 0.2,
     includeScore: true,
   });
 
   const matched = fuse.search(foodName);
-  if (matched.length === 0 || matched[0].score > 0.4) {
+  
+  // Dynamic validation:
+  // 1. If no match at all, reject.
+  // 2. If it's a short word (<= 4 chars) like "acid", be VERY strict (threshold 0.1).
+  // 3. For longer food names, allow more flexibility (0.3).
+  const isShortWord = foodName.length <= 4;
+  const effectiveThreshold = isShortWord ? 0.1 : 0.3;
+
+  if (matched.length === 0 || matched[0].score > effectiveThreshold) {
     return { food: foodName, quantity, unit: unit || "piece", calories: 0, protein: 0, carbs: 0, fats: 0, matched: false };
   }
 
@@ -247,41 +264,40 @@ function formatMealText(quantity, unit, food) {
   return `${displayQty} ${u} ${food}`;
 }
 
-async function handleAddMeals(userId, date, foods, source) {
+async function handleAddMealsWithNutrition(userId, date, processedEntities, source) {
   const entries = [];
-  let totalCalories = 0, totalProtein = 0, totalCarbs = 0, totalFats = 0;
+  let log = await DailyLog.findOne({ user: userId, date });
 
-  for (const f of foods) {
-    const nutrition = await lookupNutrition(f.food, f.quantity, f.unit);
-    entries.push({
-      mealText: formatMealText(nutrition.quantity, nutrition.unit, nutrition.food),
+  if (!log) {
+    log = new DailyLog({ 
+      user: userId, 
+      date, 
+      entries: [], 
+      totals: { calories: 0, protein: 0, carbs: 0, fats: 0 } 
+    });
+  }
+
+  for (const item of processedEntities) {
+    const nutrition = item.nutrition;
+    const entry = {
+      mealText: formatMealText(item.quantity, nutrition.unit, nutrition.food),
       calories: Math.round(nutrition.calories),
       protein: Math.round(nutrition.protein),
       carbs: Math.round(nutrition.carbs),
       fats: Math.round(nutrition.fats),
       source: source,
-      confidence: source === "RULE" ? 1.0 : (f.food_confidence || 0)
-    });
-    totalCalories += nutrition.calories;
-    totalProtein += nutrition.protein;
-    totalCarbs += nutrition.carbs;
-    totalFats += nutrition.fats;
+      confidence: item.food_confidence || 1,
+    };
+
+    log.entries.push(entry);
+    log.totals.calories += entry.calories;
+    log.totals.protein += entry.protein;
+    log.totals.carbs += entry.carbs;
+    log.totals.fats += entry.fats;
+    entries.push(entry);
   }
 
-  const log = await DailyLog.findOneAndUpdate(
-    { user: userId, date },
-    {
-      $push: { entries: { $each: entries } },
-      $inc: {
-        "totals.calories": Math.round(totalCalories),
-        "totals.protein": Math.round(totalProtein),
-        "totals.carbs": Math.round(totalCarbs),
-        "totals.fats": Math.round(totalFats),
-      },
-    },
-    { new: true, upsert: true }
-  );
-
+  await log.save();
   return { action: "added", entries, log };
 }
 
