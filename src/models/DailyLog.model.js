@@ -25,6 +25,15 @@ const entrySchema = new Schema(
     image: {
       type: String,
     },
+    source: {
+      type: String,
+      enum: ["ML", "RULE"],
+      default: "RULE",
+    },
+    confidence: {
+      type: Number,
+      default: 0,
+    },
   },
   { _id: false }
 );

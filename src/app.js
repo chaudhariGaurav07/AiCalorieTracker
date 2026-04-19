@@ -54,7 +54,7 @@ app.use("/api/v1/users", userRoutes)
 app.use("/api/v1/goals", goalRoutes)
 app.use("/api/v1/ai", aiRoutes)
 app.use("/api/v1/logs", logRoutes);
-app.use("/api/v1/meal", mealRoutes);
+app.use("/api/v1/meal", nlpLimiter, mealRoutes);
 app.use("/api/v1/progress", progressRoutes);
 app.use("/api/v1/barcode", barcodeRoutes);
 app.use("/api/v1/steps", stepRoutes);

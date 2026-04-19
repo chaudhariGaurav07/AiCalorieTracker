@@ -2,6 +2,8 @@ import { UnrecognizedFoodLog } from "../models/UnrecognizedFoodLog.model.js";
 import { Food } from "../models/Foods.model.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { clearFoodCache } from "../utils/foodCache.js";
+import { getCircuitStatus } from "../services/ml.service.js";
+import { ApiResponce } from "../utils/Apiresponce.js";
 
 // Fetch unrecognized logs
 export const getUnrecognizedLogs = asyncHandler(async (req, res) => {
@@ -70,4 +72,12 @@ export const deleteLog = asyncHandler(async (req, res) => {
   }
 
   res.status(200).json({ success: true, message: "Log deleted successfully" });
+});
+
+// Get ML Circuit Breaker Status
+export const getMLStatus = asyncHandler(async (req, res) => {
+  const status = getCircuitStatus();
+  return res.status(200).json(
+    new ApiResponce(200, status, "ML Status retrieved successfully")
+  );
 });
