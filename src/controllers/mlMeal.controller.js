@@ -3,6 +3,7 @@ import { parseMealText } from "./parser.controller.js";
 import { DailyLog } from "../models/DailyLog.model.js";
 import { Food } from "../models/Foods.model.js";
 import { UnrecognizedFoodLog } from "../models/UnrecognizedFoodLog.model.js";
+import { FeedbackLog } from "../models/FeedbackLog.model.js";
 import { CalorieGoal } from "../models/CalorieGoal.model.js";
 import { getCachedFoods } from "../utils/foodCache.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
@@ -147,9 +148,28 @@ export const processMealInput = asyncHandler(async (req, res) => {
   );
 });
 
-// ──────────────────────────────────────────────
-//  Helpers & Handlers
-// ──────────────────────────────────────────────
+/**
+ * Handle AI feedback/corrections for active learning
+ */
+export const submitAIFeedback = asyncHandler(async (req, res) => {
+  const { originalText, aiMatch, userCorrection, context } = req.body;
+
+  if (!originalText || !userCorrection) {
+    throw new ApiError(400, "Original text and user correction are required");
+  }
+
+  const feedback = await FeedbackLog.create({
+    originalText,
+    aiMatch,
+    userCorrection,
+    context: context || "MANUAL_OVERRIDE"
+  });
+
+  return res
+    .status(201)
+    .json(new ApiResponce(201, feedback, "Feedback recorded successfully for active learning"));
+});
+
 
 function formatRuleResult(ruleResult, rawText) {
   return {
@@ -206,9 +226,9 @@ function parseNumericQuantity(qty) {
   return isNaN(num) ? 1 : num;
 }
 
-async function lookupNutrition(foodName, rawQuantity, unit) {
+async function lookupNutrition(foodName, rawQuantity, unit, isRetry = false) {
   const quantity = parseNumericQuantity(rawQuantity);
-  const foods = await getCachedFoods();
+  let foods = await getCachedFoods();
   
   // Normalization: Create a space-blind version for exact compound matching
   const normalize = (str) => str.toLowerCase().replace(/[\s-]/g, "");
@@ -228,7 +248,7 @@ async function lookupNutrition(foodName, rawQuantity, unit) {
   // Fuzzy Match (Priority 2)
   const fuse = new Fuse(foods, {
     keys: ["name", "aliases"],
-    threshold: 0.4, // Temporarily more relaxed for fuzzy
+    threshold: 0.4,
     includeScore: true,
   });
 
@@ -237,15 +257,43 @@ async function lookupNutrition(foodName, rawQuantity, unit) {
   const effectiveThreshold = isShortWord ? 0.1 : 0.35;
 
   if (matched.length > 0) {
-    const score = matched[0].score;
-    console.log(`[NutritionLookup] Fuzzy Match: "${foodName}" matched "${matched[0].item.name}" with score ${score.toFixed(3)} (Threshold: ${effectiveThreshold})`);
-    
+    const topMatch = matched[0];
+    const score = topMatch.score;
+
     if (score <= effectiveThreshold) {
-      return buildNutritionResult(matched[0].item, quantity, unit, foodName);
+      // AMBIGUITY DETECTION: Check if the 2nd match is dangerously close to the 1st
+      if (matched.length > 1) {
+        const secondMatch = matched[1];
+        const scoreDiff = Math.abs(secondMatch.score - topMatch.score);
+        
+        // If the difference is negligible (< 0.05) and 2nd match is also valid
+        if (scoreDiff < 0.05 && secondMatch.score <= effectiveThreshold) {
+          console.warn(`[NutritionLookup] AMBIGUITY DETECTED: "${foodName}" could be "${topMatch.item.name}" or "${secondMatch.item.name}"`);
+          const result = buildNutritionResult(topMatch.item, quantity, unit, foodName);
+          return { 
+            ...result, 
+            isAmbiguous: true, 
+            alternatives: [
+              { name: topMatch.item.name, score: topMatch.score },
+              { name: secondMatch.item.name, score: secondMatch.score }
+            ]
+          };
+        }
+      }
+
+      console.log(`[NutritionLookup] Fuzzy Match: "${foodName}" matched "${topMatch.item.name}" with score ${score.toFixed(3)}`);
+      return buildNutritionResult(topMatch.item, quantity, unit, foodName);
     }
   }
 
-  console.warn(`[NutritionLookup] REJECTED: "${foodName}" (No close match in DB)`);
+  // SELF-HEALING: If no match found, refresh cache once and retry
+  if (!isRetry) {
+    console.log(`[NutritionLookup] No match for "${foodName}". Refreshing cache for self-healing...`);
+    await getCachedFoods(true); // Force refresh
+    return lookupNutrition(foodName, rawQuantity, unit, true); // Recursive retry once
+  }
+
+  console.warn(`[NutritionLookup] REJECTED: "${foodName}" (No close match in DB after refresh)`);
   return { food: foodName, quantity, unit: unit || "piece", calories: 0, protein: 0, carbs: 0, fats: 0, matched: false };
 }
 
@@ -253,16 +301,28 @@ async function lookupNutrition(foodName, rawQuantity, unit) {
  * Helper to build result object from database item
  */
 function buildNutritionResult(item, quantity, unit, originalName) {
-  let finalUnit = unit;
+  let finalUnit = unit || item.baseUnit;
   let multiplier = 1;
 
-  if (!finalUnit || !item.unitConversions || (item.unitConversions instanceof Map ? !item.unitConversions.get(finalUnit) : !item.unitConversions[finalUnit])) {
-    finalUnit = item.baseUnit;
-  }
-  
   const conversions = item.unitConversions || {};
-  if (conversions instanceof Map ? conversions.get(finalUnit) : conversions[finalUnit]) {
-    multiplier = conversions instanceof Map ? conversions.get(finalUnit) : conversions[finalUnit];
+  const getConv = (u) => {
+    if (!u) return null;
+    const lowerU = u.toLowerCase().trim();
+    // Try exact match, then singular/plural match
+    return (conversions instanceof Map ? conversions.get(u) : conversions[u]) ||
+           (conversions instanceof Map ? conversions.get(lowerU) : conversions[lowerU]) ||
+           (lowerU.endsWith("s") ? (conversions instanceof Map ? conversions.get(lowerU.slice(0, -1)) : conversions[lowerU.slice(0, -1)]) : null);
+  };
+
+  const foundMultiplier = getConv(finalUnit);
+  
+  if (foundMultiplier !== null && foundMultiplier !== undefined) {
+    multiplier = foundMultiplier;
+  } else {
+    // Fallback to base unit if user unit didn't match anything
+    console.warn(`[NutritionLookup] Unit "${unit}" not found for "${item.name}". Falling back to baseUnit: ${item.baseUnit}`);
+    finalUnit = item.baseUnit;
+    multiplier = getConv(item.baseUnit) || 1;
   }
 
   return {
@@ -274,6 +334,7 @@ function buildNutritionResult(item, quantity, unit, originalName) {
     carbs: quantity * multiplier * (item.nutrition?.carbs || 0),
     fats: quantity * multiplier * (item.nutrition?.fat || 0),
     matched: true,
+    isAmbiguous: false, 
   };
 }
 

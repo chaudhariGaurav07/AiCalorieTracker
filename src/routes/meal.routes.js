@@ -9,6 +9,7 @@ const router = Router();
 
 // ML-powered single endpoint — ML detects intent (ADD/REMOVE/UPDATE) automatically
 router.post("/process", verifyJWT, processMealInput);
+router.post("/ai/feedback", verifyJWT, submitAIFeedback);
 
 router.patch("/:date/:index", verifyJWT, editMealEntry);
 router.delete("/:date/:index", verifyJWT, deleteMealEntry);

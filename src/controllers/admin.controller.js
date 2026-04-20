@@ -1,7 +1,7 @@
 import { UnrecognizedFoodLog } from "../models/UnrecognizedFoodLog.model.js";
 import { Food } from "../models/Foods.model.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
-import { clearFoodCache } from "../utils/foodCache.js";
+import { clearFoodCache, getCachedFoods } from "../utils/foodCache.js";
 import { getCircuitStatus } from "../services/ml.service.js";
 import { ApiResponce } from "../utils/Apiresponce.js";
 
@@ -72,6 +72,14 @@ export const deleteLog = asyncHandler(async (req, res) => {
   }
 
   res.status(200).json({ success: true, message: "Log deleted successfully" });
+});
+
+// Manually refresh the memory cache
+export const refreshCache = asyncHandler(async (req, res) => {
+  await getCachedFoods(true);
+  return res.status(200).json(
+    new ApiResponce(200, null, "Food cache refreshed successfully across server")
+  );
 });
 
 // Get ML Circuit Breaker Status
