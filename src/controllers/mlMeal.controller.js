@@ -209,34 +209,60 @@ function parseNumericQuantity(qty) {
 async function lookupNutrition(foodName, rawQuantity, unit) {
   const quantity = parseNumericQuantity(rawQuantity);
   const foods = await getCachedFoods();
+  
+  // Normalization: Create a space-blind version for exact compound matching
+  const normalize = (str) => str.toLowerCase().replace(/[\s-]/g, "");
+  const normalizedInput = normalize(foodName);
+
+  // Exact Normalized Match (Priority 1)
+  const exactMatch = foods.find(f => 
+    normalize(f.name) === normalizedInput || 
+    (f.aliases && f.aliases.some(a => normalize(a) === normalizedInput))
+  );
+
+  if (exactMatch) {
+    console.log(`[NutritionLookup] Exact Space-Blind Match Found: ${foodName} -> ${exactMatch.name}`);
+    return buildNutritionResult(exactMatch, quantity, unit, foodName);
+  }
+
+  // Fuzzy Match (Priority 2)
   const fuse = new Fuse(foods, {
     keys: ["name", "aliases"],
-    threshold: 0.2,
+    threshold: 0.4, // Temporarily more relaxed for fuzzy
     includeScore: true,
   });
 
   const matched = fuse.search(foodName);
-  
-  // Dynamic validation:
-  // 1. If no match at all, reject.
-  // 2. If it's a short word (<= 4 chars) like "acid", be VERY strict (threshold 0.1).
-  // 3. For longer food names, allow more flexibility (0.3).
   const isShortWord = foodName.length <= 4;
-  const effectiveThreshold = isShortWord ? 0.1 : 0.3;
+  const effectiveThreshold = isShortWord ? 0.1 : 0.35;
 
-  if (matched.length === 0 || matched[0].score > effectiveThreshold) {
-    return { food: foodName, quantity, unit: unit || "piece", calories: 0, protein: 0, carbs: 0, fats: 0, matched: false };
+  if (matched.length > 0) {
+    const score = matched[0].score;
+    console.log(`[NutritionLookup] Fuzzy Match: "${foodName}" matched "${matched[0].item.name}" with score ${score.toFixed(3)} (Threshold: ${effectiveThreshold})`);
+    
+    if (score <= effectiveThreshold) {
+      return buildNutritionResult(matched[0].item, quantity, unit, foodName);
+    }
   }
 
-  const item = matched[0].item;
+  console.warn(`[NutritionLookup] REJECTED: "${foodName}" (No close match in DB)`);
+  return { food: foodName, quantity, unit: unit || "piece", calories: 0, protein: 0, carbs: 0, fats: 0, matched: false };
+}
+
+/**
+ * Helper to build result object from database item
+ */
+function buildNutritionResult(item, quantity, unit, originalName) {
   let finalUnit = unit;
   let multiplier = 1;
 
-  if (!finalUnit || !item.unitConversions || !item.unitConversions.get(finalUnit)) {
+  if (!finalUnit || !item.unitConversions || (item.unitConversions instanceof Map ? !item.unitConversions.get(finalUnit) : !item.unitConversions[finalUnit])) {
     finalUnit = item.baseUnit;
   }
-  if (item.unitConversions && item.unitConversions.get(finalUnit)) {
-    multiplier = item.unitConversions.get(finalUnit);
+  
+  const conversions = item.unitConversions || {};
+  if (conversions instanceof Map ? conversions.get(finalUnit) : conversions[finalUnit]) {
+    multiplier = conversions instanceof Map ? conversions.get(finalUnit) : conversions[finalUnit];
   }
 
   return {
