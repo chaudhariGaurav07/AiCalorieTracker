@@ -19,11 +19,14 @@ const CONFIDENCE_LOW = 0.6;
  * The ML model decides the intent (ADD/REMOVE/UPDATE).
  */
 export const processMealInput = asyncHandler(async (req, res) => {
-  const text = req.body.text || req.body.mealText;
+  let text = req.body.text || req.body.mealText;
 
   if (!text || !text.trim()) {
     throw new ApiError(400, "Text input is required");
   }
+
+  // Pre-process common unit typos that confuse the ML model
+  text = text.replace(/\bpice\b/gi, "piece").replace(/\bpcs\b/gi, "pieces");
 
   const startTime = Date.now();
 
