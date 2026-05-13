@@ -1,7 +1,7 @@
 
 import {Router} from "express";
 import { editMealEntry, deleteMealEntry, addMealWithPhoto} from "../controllers/meal.controller.js";
-import { processMealInput } from "../controllers/mlMeal.controller.js";
+import { processMealInput, submitAIFeedback } from "../controllers/mlMeal.controller.js";
 import { verifyJWT } from "../middlewares/auth.middlware.js";
 import { upload } from "../middlewares/upload.middleware.js";
 

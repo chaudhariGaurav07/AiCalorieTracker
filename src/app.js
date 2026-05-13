@@ -6,7 +6,18 @@ import rateLimit from "express-rate-limit";
 
 const app = express()
 
-app.use(helmet()); 
+// Move CORS to the TOP so it attaches headers to EVERY response (even if blocked by rate limiters)
+app.use(cors({
+    origin: [process.env.CORS_ORIGIN, "http://localhost:5173"],
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"]
+}))
+
+app.use(helmet({
+  crossOriginResourcePolicy: false // Allow loading images/resources from other origins if needed
+})); 
+
 
 // Global Rate Limiter: max 100 requests per 15 minutes per IP
 const globalLimiter = rateLimit({
@@ -19,16 +30,11 @@ const globalLimiter = rateLimit({
 app.use(globalLimiter);
 
 // Specific stricter rate limiter for heavy NLP endpoints
-const nlpLimiter = rateLimit({
+export const nlpLimiter = rateLimit({
   windowMs: 1 * 60 * 1000, // 1 minute
   max: 30, // max 30 hits to parser per minute
   message: "Too many parser requests, slow down.",
 });
-
-app.use(cors({
-    origin: process.env.CORS_ORIGINE,
-    credentials: true
-}))
 // app.use(express.json())
 app.use(express.json({limit:"10mb"}))
 app.use(express.urlencoded({extended: true})) 

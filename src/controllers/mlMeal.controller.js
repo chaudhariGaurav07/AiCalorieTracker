@@ -48,7 +48,7 @@ export const processMealInput = asyncHandler(async (req, res) => {
     // ML API returns results[].food_confidence. We take the average or minimum?
     // Let's check for any result below our threshold.
     const results = mlResult.results || [];
-    const minConfidence = results.length > 0 ? Math.min(...results.map(r => r.food_confidence)) : 1;
+    const minConfidence = results.length > 0 ? Math.min(...results.map(r => r.food_confidence ?? (r.status === "unrecognized" ? 0 : 1))) : 1;
     
     if (minConfidence < CONFIDENCE_LOW) {
       // Confidence too low → discard ML results, fallback to Rules
