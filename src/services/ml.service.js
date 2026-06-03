@@ -65,15 +65,17 @@ export const parseWithML = async (text) => {
   const baseUrl = process.env.ML_API_URL || "http://127.0.0.1:8000";
 
   try {
+    // Timeout set to 8s to handle Render free-tier cold starts (can take 10-30s)
+    // For local development, responses are ~50ms; deployed warm responses are ~700ms
     const res = await axios
-      .post(`${baseUrl}/parse`, { text }, { timeout: 2000 })
+      .post(`${baseUrl}/parse`, { text }, { timeout: 8000 })
       .catch(async (err) => {
         // Retry once on first failure
         console.warn("ML API → Retry attempt...");
         return await axios.post(
           `${baseUrl}/parse`,
           { text },
-          { timeout: 2000 }
+          { timeout: 8000 }
         );
       });
 

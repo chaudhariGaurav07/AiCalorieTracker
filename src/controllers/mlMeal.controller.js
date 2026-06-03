@@ -114,8 +114,13 @@ export const processMealInput = asyncHandler(async (req, res) => {
   let result;
   switch (intent) {
     case "ADD":
-      // Pass pre-processed nutrition to handlers
       result = await handleAddMealsWithNutrition(userId, today, processedEntities, source);
+      break;
+    case "REMOVE":
+      result = await handleRemoveMeals(userId, today, processedEntities);
+      break;
+    case "UPDATE":
+      result = await handleUpdateMeals(userId, today, processedEntities, source);
       break;
     default:
       result = await handleAddMealsWithNutrition(userId, today, processedEntities, source);

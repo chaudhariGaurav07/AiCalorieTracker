@@ -5,6 +5,36 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponce } from "../utils/Apiresponce.js";
 
+export const getBarcodeInfo = asyncHandler(async (req, res) => {
+  const { barcode } = req.params;
+
+  if (!barcode) {
+    throw new ApiError(400, "Barcode is required");
+  }
+
+  const apiurl = `https://world.openfoodfacts.org/api/v0/product/${barcode}.json`;
+  const { data } = await axios.get(apiurl);
+
+  if (!data.product) {
+    throw new ApiError(404, "Food item not found for this barcode");
+  }
+
+  const product = data.product;
+  const mealText = product.product_name || "unknown product";
+
+  const nutrients = product.nutriments || {};
+  const calories = nutrients["energy-kcal"] || 0;
+  const protein = nutrients.proteins || 0;
+  const carbs = nutrients.carbohydrates || 0;
+  const fats = nutrients.fat || 0;
+
+  const entry = { mealText, calories, protein, carbs, fats, barcode, source: "RULE" };
+
+  return res
+    .status(200)
+    .json(new ApiResponce(200, entry, "Barcode information fetched successfully"));
+});
+
 export const addMealFromBarcode = asyncHandler(async (req, res) => {
   const { barcode } = req.body;
   const userId = req.user._id;

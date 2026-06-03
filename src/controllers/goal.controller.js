@@ -6,7 +6,7 @@ import { CalorieGoal } from "../models/CalorieGoal.model.js";
 
 const setOrUpdateCalorieGoal = asyncHandler(async (req, res) => {
 
-  const { gender, age, height, weight, activityLevel, goalType } = req.body;
+  const { gender, age, height, weight, activityLevel, goalType, targetCalories: manualTarget } = req.body;
 
   if (!gender || !age || !height || !weight || !activityLevel || !goalType) {
     throw new ApiError(400, "All fields are required");
@@ -22,6 +22,11 @@ const setOrUpdateCalorieGoal = asyncHandler(async (req, res) => {
     activityLevel,
     goalType,
   });
+
+  // If user explicitly provides targetCalories, use it as an override
+  if (manualTarget && !isNaN(manualTarget) && manualTarget > 0) {
+    goals.targetCalories = parseInt(manualTarget);
+  }
 
   const updatedGoal = await CalorieGoal.findOneAndUpdate(
     { user: userId },

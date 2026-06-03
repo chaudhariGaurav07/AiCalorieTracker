@@ -23,8 +23,15 @@ export const logStepCount = asyncHandler(async (req, res) => {
   const stepDifference = steps - previousSteps;
 
   if (stepDifference <= 0) {
+    // Return a safe object even if there's no log yet
+    const safeResponse = existingLog || {
+      stepCount: steps,
+      burnedCalories: 0,
+      entries: [],
+      totals: { calories: 0, protein: 0, carbs: 0, fats: 0 },
+    };
     return res.status(200).json(
-      new ApiResponce(200, existingLog, "No new steps to update")
+      new ApiResponce(200, safeResponse, "No new steps to update")
     );
   }
 
@@ -39,7 +46,8 @@ export const logStepCount = asyncHandler(async (req, res) => {
       $set: { stepCount: steps },
       $inc: {
         burnedCalories: caloriesToAdd,
-        "totals.calories": -caloriesToAdd,
+        // NOTE: Do NOT subtract from totals.calories — that tracks food intake only.
+        // The frontend computes "remaining = goal - eaten + burned" for the display.
       },
     },
     { new: true, upsert: true }

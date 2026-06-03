@@ -8,7 +8,7 @@ const app = express()
 
 // Move CORS to the TOP so it attaches headers to EVERY response (even if blocked by rate limiters)
 app.use(cors({
-    origin: [process.env.CORS_ORIGIN, "http://localhost:5173"],
+    origin: [process.env.CORS_ORIGIN, "http://localhost:5173", "http://192.168.1.13:5000"],
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"]
@@ -19,10 +19,11 @@ app.use(helmet({
 })); 
 
 
-// Global Rate Limiter: max 100 requests per 15 minutes per IP
+// Global Rate Limiter: max 500 requests per 15 minutes per IP
+// Mobile apps make frequent small calls (auth, log, goal, steps, parse)
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, 
-  max: 100, 
+  max: 500, 
   message: "Too many requests from this IP, please try again in 15 minutes",
   standardHeaders: true, 
   legacyHeaders: false, 

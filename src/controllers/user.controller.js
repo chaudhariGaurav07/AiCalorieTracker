@@ -55,12 +55,12 @@ const registerUser = asyncHandler(async (req, res) => {
     throw new ApiError(500, "Something went wrong while creating user");
   }
 
-  const { accessToken } = await generateAccessAndRefreshToken(createdUser._id);
-
+  const { accessToken, refreshToken } = await generateAccessAndRefreshToken(createdUser._id);
 
  return res.status(201).json(
   new ApiResponce(201, {
     accessToken,
+    refreshToken,
     user: createdUser,
   }, "User Registered Successfully")
 );
@@ -295,6 +295,12 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
 });
 
 
+const getCurrentUser = asyncHandler(async (req, res) => {
+  return res
+    .status(200)
+    .json(new ApiResponce(200, req.user, "Current user fetched successfully"));
+});
+
 export {
   registerUser,
   loginUser,
@@ -304,4 +310,5 @@ export {
   refreshAccessToken,
   forgotPassword,
   resetPassword,
+  getCurrentUser,
 };
