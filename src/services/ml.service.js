@@ -1,8 +1,8 @@
 import axios from "axios";
 
 // ─── Circuit Breaker State ──────────────────────────────
-const MAX_FAILURES = 3;
-const COOLDOWN_MS = 30_000; // 30s before retrying a downed API
+const MAX_FAILURES = 5;       // Increased — Render cold starts cause transient failures
+const COOLDOWN_MS = 60_000;   // 60s cooldown before retrying a downed ML API
 
 let consecutiveFailures = 0;
 let circuitOpenedAt = null; // timestamp when circuit opened
@@ -64,36 +64,41 @@ export const parseWithML = async (text) => {
 
   const baseUrl = process.env.ML_API_URL || "http://127.0.0.1:8000";
 
+  // ── Attempt 1: Main request ──
+  // Timeout: 25s to survive Render free-tier cold starts (can take 15-30s).
+  // NOTE: Do NOT inline .catch() with a retry here — that counts failures TWICE
+  // and opens the circuit breaker too quickly.
   try {
-    // Timeout set to 8s to handle Render free-tier cold starts (can take 10-30s)
-    // For local development, responses are ~50ms; deployed warm responses are ~700ms
-    const res = await axios
-      .post(`${baseUrl}/parse`, { text }, { timeout: 8000 })
-      .catch(async (err) => {
-        // Retry once on first failure
-        console.warn("ML API → Retry attempt...");
-        return await axios.post(
-          `${baseUrl}/parse`,
-          { text },
-          { timeout: 8000 }
-        );
-      });
-
-    // Success → reset circuit
+    const res = await axios.post(`${baseUrl}/parse`, { text }, { timeout: 25000 });
     recordSuccess();
     return res.data;
-  } catch (error) {
-    // Failure → increment circuit breaker counter
-    recordFailure(error);
-
-    if (error.code === "ECONNABORTED") {
-      console.warn("ML API Timeout → Falling back to rule parser");
-    } else if (error.response) {
-      console.warn(`ML API Error: ${error.response.status} → Falling back`);
-    } else {
-      console.warn(`ML API Down: ${error.message} → Falling back`);
+  } catch (firstError) {
+    // ── Attempt 2: Single retry after a brief warm-up pause ──
+    // Only retry on timeout/network — not on 4xx/5xx responses
+    const isNetworkError = !firstError.response;
+    if (isNetworkError) {
+      console.warn(`ML API → First attempt failed (${firstError.code || firstError.message}). Waiting 3s before retry...`);
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+      try {
+        const res = await axios.post(`${baseUrl}/parse`, { text }, { timeout: 20000 });
+        recordSuccess();
+        return res.data;
+      } catch (retryError) {
+        recordFailure(retryError);
+        console.warn(`ML API → Retry also failed: ${retryError.message} → Falling back to rules`);
+        return null;
+      }
     }
 
+    // Non-retryable error (e.g. 400, 500 from ML service)
+    recordFailure(firstError);
+    if (firstError.response) {
+      console.warn(`ML API Error: HTTP ${firstError.response.status} → Falling back to rules`);
+    } else if (firstError.code === "ECONNABORTED") {
+      console.warn("ML API Timeout → Falling back to rule parser");
+    } else {
+      console.warn(`ML API Down: ${firstError.message} → Falling back to rules`);
+    }
     return null;
   }
 };

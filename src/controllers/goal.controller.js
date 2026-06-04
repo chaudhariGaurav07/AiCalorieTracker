@@ -6,7 +6,9 @@ import { CalorieGoal } from "../models/CalorieGoal.model.js";
 
 const setOrUpdateCalorieGoal = asyncHandler(async (req, res) => {
 
-  const { gender, age, height, weight, activityLevel, goalType, targetCalories: manualTarget } = req.body;
+  // Only accept the fields needed for Mifflin-St Jeor calculation.
+  // targetCalories is intentionally NOT read from req.body — it's always computed.
+  const { gender, age, height, weight, activityLevel, goalType } = req.body;
 
   if (!gender || !age || !height || !weight || !activityLevel || !goalType) {
     throw new ApiError(400, "All fields are required");
@@ -22,11 +24,7 @@ const setOrUpdateCalorieGoal = asyncHandler(async (req, res) => {
     activityLevel,
     goalType,
   });
-
-  // If user explicitly provides targetCalories, use it as an override
-  if (manualTarget && !isNaN(manualTarget) && manualTarget > 0) {
-    goals.targetCalories = parseInt(manualTarget);
-  }
+  // goals = { targetCalories, proteinGoal, fatGoal, carbGoal } — all formula-derived
 
   const updatedGoal = await CalorieGoal.findOneAndUpdate(
     { user: userId },
