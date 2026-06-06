@@ -84,7 +84,34 @@ export const processMealInput = asyncHandler(async (req, res) => {
      if (nutrition.matched) {
         processedEntities.push({ ...item, nutrition });
      } else {
-        invalidEntities.push(item.food);
+        // Compound food matching fallback: split the unrecognized food by spaces (e.g. "dal sabji" -> "dal" & "sabji")
+        const words = item.food.split(/\s+/).map(w => w.trim()).filter(Boolean);
+        let splitSuccess = false;
+        
+        if (words.length > 1) {
+          const subMatched = [];
+          for (const word of words) {
+            const subNut = await lookupNutrition(word, item.quantity, item.unit);
+            if (subNut.matched) {
+              subMatched.push(subNut);
+            }
+          }
+          // If all individual words matched valid foods in the DB, process them all
+          if (subMatched.length === words.length) {
+            for (const subNut of subMatched) {
+              processedEntities.push({
+                ...item,
+                food: subNut.food,
+                nutrition: subNut
+              });
+            }
+            splitSuccess = true;
+          }
+        }
+        
+        if (!splitSuccess) {
+           invalidEntities.push(item.food);
+        }
      }
   }
 

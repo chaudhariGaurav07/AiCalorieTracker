@@ -104,14 +104,57 @@ export const parseMealText = async (text) => {
       totalFat += quantity * multiplier * (item.nutrition?.fat || 0);
 
     } else {
-      unmatchedItems.push(foodNameString);
-      try {
-          await UnrecognizedFoodLog.create({
-             originalString: part,
-             reason: matched.length > 0 ? 'LOW_CONFIDENCE' : 'UNPARSEABLE'
-          });
-      } catch (dbErr) {
-          console.error("Failed to log unrecognized food:", dbErr.message);
+      // Compound food matching fallback: split the unrecognized food by spaces (e.g. "dal sabji" -> "dal" & "sabji")
+      const words = foodNameString.split(/\s+/).map(w => w.trim()).filter(Boolean);
+      let splitSuccess = false;
+
+      if (words.length > 1) {
+        const subMatched = [];
+        for (const word of words) {
+          const subMatch = fuse.search(word);
+          if (subMatch.length > 0 && subMatch[0].score <= 0.4) {
+            subMatched.push(subMatch[0].item);
+          }
+        }
+        // If all individual words matched valid foods in the DB, process them all
+        if (subMatched.length === words.length) {
+          for (const item of subMatched) {
+            let finalUnit = unit;
+            let multiplier = 1;
+            
+            if (!finalUnit || !item.unitConversions || !item.unitConversions.get(finalUnit)) {
+               finalUnit = item.baseUnit;
+            }
+
+            if (item.unitConversions && item.unitConversions.get(finalUnit)) {
+               multiplier = item.unitConversions.get(finalUnit);
+            }
+
+            results.push({
+              food: item.name,
+              quantity,
+              unit: finalUnit
+            });
+
+            totalCalories += quantity * multiplier * (item.nutrition?.calories || 0);
+            totalProtein += quantity * multiplier * (item.nutrition?.protein || 0);
+            totalCarbs += quantity * multiplier * (item.nutrition?.carbs || 0);
+            totalFat += quantity * multiplier * (item.nutrition?.fat || 0);
+          }
+          splitSuccess = true;
+        }
+      }
+
+      if (!splitSuccess) {
+        unmatchedItems.push(foodNameString);
+        try {
+            await UnrecognizedFoodLog.create({
+               originalString: part,
+               reason: matched.length > 0 ? 'LOW_CONFIDENCE' : 'UNPARSEABLE'
+            });
+        } catch (dbErr) {
+            console.error("Failed to log unrecognized food:", dbErr.message);
+        }
       }
     }
   }
