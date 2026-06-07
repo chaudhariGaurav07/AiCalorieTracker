@@ -65,11 +65,11 @@ export const parseWithML = async (text) => {
   const baseUrl = process.env.ML_API_URL || "http://127.0.0.1:8000";
 
   // ── Attempt 1: Main request ──
-  // Timeout: 25s to survive Render free-tier cold starts (can take 15-30s).
+  // Timeout: 45s to survive Render free-tier cold starts.
   // NOTE: Do NOT inline .catch() with a retry here — that counts failures TWICE
   // and opens the circuit breaker too quickly.
   try {
-    const res = await axios.post(`${baseUrl}/parse`, { text }, { timeout: 25000 });
+    const res = await axios.post(`${baseUrl}/parse`, { text }, { timeout: 45000 });
     recordSuccess();
     return res.data;
   } catch (firstError) {
@@ -80,7 +80,7 @@ export const parseWithML = async (text) => {
       console.warn(`ML API → First attempt failed (${firstError.code || firstError.message}). Waiting 3s before retry...`);
       await new Promise((resolve) => setTimeout(resolve, 3000));
       try {
-        const res = await axios.post(`${baseUrl}/parse`, { text }, { timeout: 20000 });
+        const res = await axios.post(`${baseUrl}/parse`, { text }, { timeout: 35000 });
         recordSuccess();
         return res.data;
       } catch (retryError) {

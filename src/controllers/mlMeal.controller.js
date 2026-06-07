@@ -1,4 +1,4 @@
-import { parseWithML } from "../services/ml.service.js";
+import { parseWithML, checkMLHealth } from "../services/ml.service.js";
 import { parseMealText } from "./parser.controller.js";
 import { DailyLog } from "../models/DailyLog.model.js";
 import { Food } from "../models/Foods.model.js";
@@ -502,3 +502,21 @@ async function handleUpdateMeals(userId, date, foods, source) {
   await dailyLog.save();
   return { action: "updated", updated, log: dailyLog };
 }
+
+/**
+ * Controller to warmup ML service in the background.
+ */
+export const warmupML = asyncHandler(async (req, res) => {
+  // Fire-and-forget call to wake up ML service if sleeping
+  checkMLHealth()
+    .then((status) => {
+      console.log("[ML Warmup] Background wake-up ping successful. Status:", status);
+    })
+    .catch((err) => {
+      console.warn("[ML Warmup] Background wake-up ping failed:", err.message);
+    });
+
+  return res.status(200).json(
+    new ApiResponce(200, {}, "ML service warm-up ping sent in background")
+  );
+});
