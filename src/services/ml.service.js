@@ -24,7 +24,7 @@ function isCircuitOpen() {
 
 function recordSuccess() {
   if (consecutiveFailures >= MAX_FAILURES) {
-    console.log("✅ ML Circuit CLOSED (ML recovered)");
+    console.log("ML Circuit CLOSED (ML recovered)");
   }
   consecutiveFailures = 0;
   circuitOpenedAt = null;

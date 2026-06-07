@@ -4,6 +4,7 @@ import { sendMail } from "../utils/sendMail.js"; // use nodemailer or Resend
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { User } from "../models/User.model.js";
+import { Otp } from "../models/Otp.model.js";
 import { ApiResponce } from "../utils/Apiresponce.js";
 import jwt from "jsonwebtoken";
 
@@ -301,6 +302,267 @@ const getCurrentUser = asyncHandler(async (req, res) => {
     .json(new ApiResponce(200, req.user, "Current user fetched successfully"));
 });
 
+// Helper to generate a 6-digit numeric OTP
+const generateOTP = () => {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+};
+
+const requestRegisterOtp = asyncHandler(async (req, res) => {
+  const { email, username } = req.body;
+
+  if (!email || !username) {
+    throw new ApiError(400, "Email and username are required");
+  }
+
+  // Check if user already exists
+  const existedUser = await User.findOne({
+    $or: [{ username: username.toLowerCase() }, { email: email.toLowerCase() }],
+  });
+
+  if (existedUser) {
+    throw new ApiError(409, "User with email or username already exists");
+  }
+
+  const otp = generateOTP();
+  const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+
+  // Upsert OTP for this email and purpose
+  await Otp.findOneAndUpdate(
+    { email: email.toLowerCase(), purpose: "register" },
+    { otp, expiresAt },
+    { upsert: true, new: true }
+  );
+
+  // Send Email
+  await sendMail({
+    to: email,
+    subject: "Your Registration Verification Code",
+    html: `
+      <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
+        <h2>Welcome to CalAI!</h2>
+        <p>Please use the following 6-digit verification code to complete your registration:</p>
+        <div style="font-size: 24px; font-weight: bold; background: #f0f0f0; padding: 15px; display: inline-block; border-radius: 5px; letter-spacing: 2px;">
+          ${otp}
+        </div>
+        <p>This code is valid for 5 minutes. If you did not request this code, you can safely ignore this email.</p>
+      </div>
+    `,
+  });
+
+  return res.status(200).json(
+    new ApiResponce(200, {}, "Verification code sent to your email")
+  );
+});
+
+const verifyRegisterOtpAndRegister = asyncHandler(async (req, res) => {
+  const { email, username, password, otp } = req.body;
+
+  if (!email || !username || !password || !otp) {
+    throw new ApiError(400, "All fields (email, username, password, otp) are required");
+  }
+
+  // Verify OTP
+  const otpRecord = await Otp.findOne({
+    email: email.toLowerCase(),
+    otp,
+    purpose: "register",
+  });
+
+  if (!otpRecord || otpRecord.expiresAt < new Date()) {
+    throw new ApiError(400, "Invalid or expired verification code");
+  }
+
+  // Delete OTP record since it's verified
+  await Otp.deleteOne({ _id: otpRecord._id });
+
+  // Double check user doesn't already exist
+  const existedUser = await User.findOne({
+    $or: [{ username: username.toLowerCase() }, { email: email.toLowerCase() }],
+  });
+
+  if (existedUser) {
+    throw new ApiError(409, "User with email or username already exists");
+  }
+
+  // Create User
+  const user = await User.create({
+    username: username.toLowerCase(),
+    email: email.toLowerCase(),
+    password,
+  });
+
+  const createdUser = await User.findById(user._id).select(
+    "-password -refreshToken"
+  );
+
+  if (!createdUser) {
+    throw new ApiError(500, "Something went wrong while creating user");
+  }
+
+  const { accessToken, refreshToken } = await generateAccessAndRefreshToken(createdUser._id);
+
+  return res.status(201).json(
+    new ApiResponce(201, {
+      accessToken,
+      refreshToken,
+      user: createdUser,
+    }, "User registered successfully")
+  );
+});
+
+const requestLoginOtp = asyncHandler(async (req, res) => {
+  const { email } = req.body;
+
+  if (!email) {
+    throw new ApiError(400, "Email is required");
+  }
+
+  const user = await User.findOne({ email: email.toLowerCase() });
+  if (!user) {
+    throw new ApiError(404, "User not found with this email");
+  }
+
+  const otp = generateOTP();
+  const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+
+  await Otp.findOneAndUpdate(
+    { email: email.toLowerCase(), purpose: "login" },
+    { otp, expiresAt },
+    { upsert: true, new: true }
+  );
+
+  await sendMail({
+    to: email,
+    subject: "Your Login Verification Code",
+    html: `
+      <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
+        <h2>CalAI Login Verification</h2>
+        <p>Please use the following 6-digit code to log in to your account:</p>
+        <div style="font-size: 24px; font-weight: bold; background: #f0f0f0; padding: 15px; display: inline-block; border-radius: 5px; letter-spacing: 2px;">
+          ${otp}
+        </div>
+        <p>This code is valid for 5 minutes. If you did not request this login code, we recommend changing your password.</p>
+      </div>
+    `,
+  });
+
+  return res.status(200).json(
+    new ApiResponce(200, {}, "Login verification code sent to your email")
+  );
+});
+
+const verifyLoginOtp = asyncHandler(async (req, res) => {
+  const { email, otp } = req.body;
+
+  if (!email || !otp) {
+    throw new ApiError(400, "Email and verification code are required");
+  }
+
+  const otpRecord = await Otp.findOne({
+    email: email.toLowerCase(),
+    otp,
+    purpose: "login",
+  });
+
+  if (!otpRecord || otpRecord.expiresAt < new Date()) {
+    throw new ApiError(400, "Invalid or expired verification code");
+  }
+
+  await Otp.deleteOne({ _id: otpRecord._id });
+
+  const user = await User.findOne({ email: email.toLowerCase() });
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+
+  const { accessToken, refreshToken } = await generateAccessAndRefreshToken(user._id);
+
+  const loggedInUser = await User.findById(user._id).select(
+    "-password -refreshToken"
+  );
+
+  return res.status(200).json(
+    new ApiResponce(200, {
+      user: loggedInUser,
+      accessToken,
+      refreshToken,
+    }, "User logged in successfully")
+  );
+});
+
+const requestForgotPasswordOtp = asyncHandler(async (req, res) => {
+  const { email } = req.body;
+
+  if (!email) {
+    throw new ApiError(400, "Email is required");
+  }
+
+  const user = await User.findOne({ email: email.toLowerCase() });
+  if (!user) {
+    throw new ApiError(404, "User not found with this email");
+  }
+
+  const otp = generateOTP();
+  const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+
+  await Otp.findOneAndUpdate(
+    { email: email.toLowerCase(), purpose: "forgot_password" },
+    { otp, expiresAt },
+    { upsert: true, new: true }
+  );
+
+  await sendMail({
+    to: email,
+    subject: "Your Password Reset Verification Code",
+    html: `
+      <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
+        <h2>CalAI Password Reset</h2>
+        <p>Please use the following 6-digit code to verify your identity and reset your password:</p>
+        <div style="font-size: 24px; font-weight: bold; background: #f0f0f0; padding: 15px; display: inline-block; border-radius: 5px; letter-spacing: 2px;">
+          ${otp}
+        </div>
+        <p>This code is valid for 5 minutes. If you did not request a password reset, you can safely ignore this email.</p>
+      </div>
+    `,
+  });
+
+  return res.status(200).json(
+    new ApiResponce(200, {}, "Password reset verification code sent to your email")
+  );
+});
+
+const verifyForgotPasswordOtp = asyncHandler(async (req, res) => {
+  const { email, otp, newPassword } = req.body;
+
+  if (!email || !otp || !newPassword) {
+    throw new ApiError(400, "Email, verification code, and new password are required");
+  }
+
+  const otpRecord = await Otp.findOne({
+    email: email.toLowerCase(),
+    otp,
+    purpose: "forgot_password",
+  });
+
+  if (!otpRecord || otpRecord.expiresAt < new Date()) {
+    throw new ApiError(400, "Invalid or expired verification code");
+  }
+
+  await Otp.deleteOne({ _id: otpRecord._id });
+
+  const user = await User.findOne({ email: email.toLowerCase() });
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+
+  user.password = newPassword;
+  await user.save();
+
+  return res.status(200).json(
+    new ApiResponce(200, {}, "Password reset successfully. You can now log in.")
+  );
+});
+
 export {
   registerUser,
   loginUser,
@@ -311,4 +573,10 @@ export {
   forgotPassword,
   resetPassword,
   getCurrentUser,
+  requestRegisterOtp,
+  verifyRegisterOtpAndRegister,
+  requestLoginOtp,
+  verifyLoginOtp,
+  requestForgotPasswordOtp,
+  verifyForgotPasswordOtp,
 };
