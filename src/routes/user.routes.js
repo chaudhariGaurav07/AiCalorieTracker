@@ -6,8 +6,6 @@ import {
   refreshAccessToken,
   registerUser,
   updateAccountDetails,
-  forgotPassword,
-  resetPassword,
   getCurrentUser,
   requestRegisterOtp,
   verifyRegisterOtpAndRegister,
@@ -23,8 +21,6 @@ const router = Router();
 // Standard auth routes
 router.route("/register").post(registerUser);
 router.route("/login").post(loginUser);
-router.post("/forgot-password", forgotPassword);
-router.post("/reset-password/:token", resetPassword);
 
 // OTP-based auth routes
 router.post("/register/request-otp", requestRegisterOtp);

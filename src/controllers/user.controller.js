@@ -186,70 +186,7 @@ const changeCurrentPassword = asyncHandler(async (req, res) => {
     .json(new ApiResponce(200, {}, "password change successfully"));
 });
 
-const forgotPassword = asyncHandler(async (req, res) => {
-  const { email } = req.body;
-
-  if (!email) {
-    throw new ApiError(400, "Email is required");
-  }
-
-  const user = await User.findOne({ email });
-
-  if (!user) {
-    throw new ApiError(404, "User not found");
-  }
-
-  const { token, hashedToken } = generateResetToken();
-
-  user.resetPasswordToken = hashedToken;
-  user.resetPasswordExpires = Date.now() + 15 * 60 * 1000; // 15 min
-  await user.save({ validateBeforeSave: false });
-
-  const resetUrl = `http://your-frontend-url/reset-password/${token}`;
-  console.log(" Reset Link:", resetUrl); // debuging
-
-  await sendMail({
-    to: user.email,
-    subject: "Password Reset Link",
-    html: `<p>Click <a href="${resetUrl}">here</a> to reset your password. Link valid for 15 mins.</p>`,
-  });
-
-  return res
-    .status(200)
-    .json(new ApiResponce(200, {}, "Reset link sent to email"));
-});
-
-const resetPassword = asyncHandler(async (req, res) => {
-  const { token } = req.params;
-  const { newPassword } = req.body;
-
-  //  Validate new password
-  if (!newPassword || newPassword.trim() === "") {
-    throw new ApiError(400, "New password is required");
-  }
-
-  const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
-
-  const user = await User.findOne({
-    resetPasswordToken: hashedToken,
-    resetPasswordExpires: { $gt: Date.now() },
-  });
-
-  if (!user) {
-    throw new ApiError(400, "Invalid or expired token");
-  }
-
-  // Assign and save new password
-  user.password = newPassword;
-  user.resetPasswordToken = undefined;
-  user.resetPasswordExpires = undefined;
-
-  await user.save(); // saved in db
-
-  return res
-    .status(200)
-    .json(new ApiResponce(200, {}, "Password reset successfully"));
-});
+// Deprecated: forgotPassword and resetPassword were removed in favor of OTP-based flow
 
 const refreshAccessToken = asyncHandler(async (req, res) => {
   try {
@@ -339,7 +276,7 @@ const requestRegisterOtp = asyncHandler(async (req, res) => {
     subject: "Your Registration Verification Code",
     html: `
       <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
-        <h2>Welcome to CalAI!</h2>
+        <h2>Welcome to AiCalorieTracker!</h2>
         <p>Please use the following 6-digit verification code to complete your registration:</p>
         <div style="font-size: 24px; font-weight: bold; background: #f0f0f0; padding: 15px; display: inline-block; border-radius: 5px; letter-spacing: 2px;">
           ${otp}
@@ -570,8 +507,6 @@ export {
   updateAccountDetails,
   changeCurrentPassword,
   refreshAccessToken,
-  forgotPassword,
-  resetPassword,
   getCurrentUser,
   requestRegisterOtp,
   verifyRegisterOtpAndRegister,
