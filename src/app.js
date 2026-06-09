@@ -5,6 +5,7 @@ import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 
 const app = express()
+app.set("trust proxy", 1); // Allow Render's load balancer for rate limiting
 
 // Move CORS to the TOP so it attaches headers to EVERY response (even if blocked by rate limiters)
 app.use(cors({

@@ -5,7 +5,9 @@ export const sendMail = async ({ to, subject, html }) => {
   try {
     // Transporter setup (use Gmail, Mailtrap, or any SMTP)
     const transporter = nodemailer.createTransport({
-      service: "gmail",
+      host: "smtp.gmail.com",
+      port: 465,
+      secure: true,
       auth: {
         user: process.env.MAIL_USER,     //  email
         pass: process.env.MAIL_PASS,     //  app password not is real pass
