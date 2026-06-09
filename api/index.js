@@ -3,8 +3,8 @@ dotenv.config({
   path: "./.env",
 });
 
-import connectDB from "./db/db.js";
-import { app } from "./app.js";
+import connectDB from "../db/db.js";
+import { app } from "../app.js";
 
 connectDB()
   .then(() => {
