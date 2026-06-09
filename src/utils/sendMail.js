@@ -1,13 +1,18 @@
 
 import nodemailer from "nodemailer";
+import dns from "node:dns";
+
+// Render Free Tier has broken outbound IPv6 routing. 
+// Force Node to resolve IPv4 addresses for smtp.gmail.com.
+dns.setDefaultResultOrder("ipv4first");
 
 export const sendMail = async ({ to, subject, html }) => {
   try {
     // Transporter setup (use Gmail, Mailtrap, or any SMTP)
     const transporter = nodemailer.createTransport({
       host: "smtp.gmail.com",
-      port: 465,
-      secure: true,
+      port: 587,
+      secure: false, // true for 465, false for other ports
       auth: {
         user: process.env.MAIL_USER,     //  email
         pass: process.env.MAIL_PASS,     //  app password not is real pass
